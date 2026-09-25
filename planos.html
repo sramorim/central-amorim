@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Planos — Central Amorim</title>
+  <meta name="description" content="Planos da Central Amorim: gratuito, PRO e administrativo." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/css/style.css" />
+</head>
+<body>
+  <header class="header" role="banner">
+    <div class="container header-inner">
+      <a href="/" class="logo" aria-label="Central Amorim — Página inicial">
+        <span class="logo-mark" aria-hidden="true">SA</span>
+        <span>SENHOR AMORIM</span>
+      </a>
+      <div class="header-actions">
+        <nav class="nav-desktop" role="navigation" aria-label="Menu principal">
+          <a href="/#inicio">Início</a>
+          <a href="/#projetos">Projetos</a>
+          <a href="/planos" class="is-current">Planos</a>
+          <a href="/#sobre">Sobre</a>
+          <a href="/#contato">Contato</a>
+        </nav>
+        <div class="auth-slot" data-auth></div>
+        <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-nav">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+    <nav class="nav-mobile" id="mobile-nav" role="navigation" aria-label="Menu mobile">
+      <a href="/#inicio">Início</a>
+      <a href="/#projetos">Projetos</a>
+      <a href="/planos">Planos</a>
+      <a href="/#sobre">Sobre</a>
+      <a href="/#contato">Contato</a>
+      <span data-auth-mobile></span>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <h1 class="fade-in">Planos</h1>
+        <p class="page-hero-sub fade-in fade-in-d1">Níveis de acesso da plataforma, organizados por necessidade.</p>
+      </div>
+    </section>
+
+    <section class="page-content">
+      <div class="container">
+        <div class="plan-grid" id="plan-grid">
+          <div class="plan-card plan-card--skeleton">
+            <div class="skeleton-line skeleton-w60"></div>
+            <div class="skeleton-line skeleton-w40"></div>
+          </div>
+        </div>
+
+        <div class="plans-notice">
+          <p>
+            O plano <strong>PRO</strong> será expandido conforme novos recursos forem liberados nos projetos.
+            Nesta etapa não há checkout nem cobrança: o PRO é uma estrutura interna para evolução futura.
+          </p>
+          <p class="plans-current" id="plans-current"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">CENTRAL AMORIM</div>
+          <p class="footer-tagline">Portal da marca Senhor Amorim.</p>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Conta</span>
+          <a href="/entrar">Entrar</a>
+          <a href="/criar-conta">Criar conta</a>
+          <a href="/minha-conta">Minha conta</a>
+          <a href="/planos">Planos</a>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Navegação</span>
+          <a href="/#projetos">Projetos</a>
+          <a href="/#solucoes">Soluções</a>
+          <a href="/#sobre">Sobre</a>
+          <a href="/#contato">Contato</a>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Legal</span>
+          <a href="/creditos">Créditos</a>
+          <a href="/legal">Legal</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Senhor Amorim — Daniel Amorim</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/js/main.js"></script>
+  <script type="module">
+    import { renderAuthSlot, apiGet } from '/src/js/auth.js';
+
+    renderAuthSlot();
+
+    const grid = document.getElementById('plan-grid');
+    const current = document.getElementById('plans-current');
+
+    const FEATURES = {
+      FREE: ['Conta gratuita', 'Acesso básico aos projetos', 'Limites definidos pela plataforma', 'Identidade única entre projetos'],
+      PRO: ['Recursos ampliados', 'Acesso premium aos projetos compatíveis', 'Será expandido conforme novos recursos', 'Sem cobrança nesta etapa'],
+      ADMIN: ['Acesso administrativo', 'Gestão da plataforma', 'Uso interno'],
+    };
+
+    const TONES = { FREE: '', PRO: 'plan-card--pro', ADMIN: 'plan-card--admin' };
+
+    (async () => {
+      const { ok, data } = await apiGet('/api/plans');
+      const me = await apiGet('/api/auth/me');
+      const myPlan = me.ok && me.data.authenticated ? me.data.user.plan : null;
+
+      if (!ok || !data || !data.plans) {
+        grid.innerHTML = '<p class="plans-error">Não foi possível carregar os planos.</p>';
+        return;
+      }
+
+      grid.innerHTML = data.plans
+        .map((p) => {
+          const features = FEATURES[p.code] || [];
+          const isMine = myPlan === p.code;
+          const cta =
+            p.code === 'FREE'
+              ? (myPlan ? `<span class="plan-current-tag">Seu plano atual</span>` : `<a class="btn btn-primary" href="/criar-conta">Criar conta gratuita</a>`)
+              : p.code === 'PRO'
+                ? `<span class="plan-soon-tag">Em expansão — em breve</span>`
+                : `<span class="plan-soon-tag" style="background:rgba(43,107,255,.08);color:var(--accent-strong);border-color:var(--accent-line)">Uso interno</span>`;
+          return `
+          <article class="plan-card ${TONES[p.code] || ''}">
+            <header class="plan-card-head">
+              <span class="plan-code">${p.code}</span>
+              <h3 class="plan-title">${p.label}</h3>
+            </header>
+            <p class="plan-descriptor">${p.descriptor}</p>
+            <ul class="plan-features">
+              ${features.map((f) => `<li>${f}</li>`).join('')}
+            </ul>
+            <div class="plan-cta">
+              ${isMine && p.code !== 'FREE' ? `<span class="plan-current-tag">${p.code === 'ADMIN' ? 'Seu nível de acesso' : 'Seu plano atual'}</span>` : cta}
+            </div>
+          </article>`;
+        })
+        .join('');
+
+      if (myPlan) {
+        current.textContent = `Sua conta está no plano ${myPlan === 'PRO' ? 'PRO' : myPlan === 'ADMIN' ? 'ADMIN' : 'grátis (FREE)'}. O upgrade para PRO será habilitado em uma próxima etapa.`;
+      } else {
+        current.textContent = 'Crie uma conta gratuita para desbloquear o acesso básico da plataforma.';
+      }
+    })();
+  </script>
+</body>
+</html>

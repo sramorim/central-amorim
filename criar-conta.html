@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Criar conta — Central Amorim</title>
+  <meta name="description" content="Crie sua conta gratuita na Central Amorim." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/css/style.css" />
+</head>
+<body>
+  <header class="header" role="banner">
+    <div class="container header-inner">
+      <a href="/" class="logo" aria-label="Central Amorim — Página inicial">
+        <span class="logo-mark" aria-hidden="true">SA</span>
+        <span>SENHOR AMORIM</span>
+      </a>
+      <div class="header-actions">
+        <nav class="nav-desktop" role="navigation" aria-label="Menu principal">
+          <a href="/#inicio">Início</a>
+          <a href="/#projetos">Projetos</a>
+          <a href="/planos">Planos</a>
+          <a href="/#sobre">Sobre</a>
+          <a href="/#contato">Contato</a>
+        </nav>
+        <div class="auth-slot" data-auth></div>
+        <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-nav">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+    <nav class="nav-mobile" id="mobile-nav" role="navigation" aria-label="Menu mobile">
+      <a href="/#inicio">Início</a>
+      <a href="/#projetos">Projetos</a>
+      <a href="/planos">Planos</a>
+      <a href="/#sobre">Sobre</a>
+      <a href="/#contato">Contato</a>
+      <span data-auth-mobile></span>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <h1 class="fade-in">Criar conta</h1>
+        <p class="page-hero-sub fade-in fade-in-d1">Conta gratuita. Acesso básico à plataforma.</p>
+      </div>
+    </section>
+
+    <section class="page-content">
+      <div class="container">
+        <div class="auth-card">
+          <form id="register-form" novalidate>
+            <label class="form-label" for="name">Nome</label>
+            <input class="form-input" id="name" name="name" type="text" autocomplete="name" required minlength="2" maxlength="80" placeholder="Seu nome" />
+
+            <label class="form-label" for="email">E-mail</label>
+            <input class="form-input" id="email" name="email" type="email" inputmode="email" autocomplete="email" required placeholder="voce@exemplo.com" />
+
+            <label class="form-label" for="password">Senha</label>
+            <input class="form-input" id="password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Mínimo de 8 caracteres" />
+
+            <label class="form-label" for="password2">Confirmar senha</label>
+            <input class="form-input" id="password2" name="password2" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Repita a senha" />
+
+            <div class="form-alert" role="alert" aria-live="polite"></div>
+
+            <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Criar conta gratuita</button>
+          </form>
+
+          <div class="auth-divider"><span>ou</span></div>
+
+          <button class="btn btn-secondary btn-block" type="button" id="google-btn">Continuar com Google</button>
+
+          <p class="auth-footnote">
+            Já tem conta? <a class="form-link" href="/entrar">Entrar</a> ·
+            Ao criar a conta você recebe o plano gratuito (FREE).
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">CENTRAL AMORIM</div>
+          <p class="footer-tagline">Portal da marca Senhor Amorim.</p>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Conta</span>
+          <a href="/entrar">Entrar</a>
+          <a href="/criar-conta">Criar conta</a>
+          <a href="/minha-conta">Minha conta</a>
+          <a href="/planos">Planos</a>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Navegação</span>
+          <a href="/#projetos">Projetos</a>
+          <a href="/#solucoes">Soluções</a>
+          <a href="/#sobre">Sobre</a>
+          <a href="/#contato">Contato</a>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Legal</span>
+          <a href="/creditos">Créditos</a>
+          <a href="/legal">Legal</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Senhor Amorim — Daniel Amorim</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/js/main.js"></script>
+  <script type="module">
+    import { renderAuthSlot, redirectIfAuthed, apiPost, showAlert, validateEmail, validatePassword, validateName, afterAuthDestination } from '/src/js/auth.js';
+
+    renderAuthSlot();
+    redirectIfAuthed();
+
+    const form = document.getElementById('register-form');
+    const alert = document.querySelector('.form-alert');
+    const btn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = validateName(document.getElementById('name').value);
+      const email = validateEmail(document.getElementById('email').value);
+      const password = validatePassword(document.getElementById('password').value);
+      const password2 = String(document.getElementById('password2').value || '');
+
+      if (!name) return showAlert(alert, 'Informe seu nome (2 a 80 caracteres).');
+      if (!email) return showAlert(alert, 'Informe um e-mail válido.');
+      if (!password) return showAlert(alert, 'A senha deve ter entre 8 e 128 caracteres.');
+      if (password !== password2) return showAlert(alert, 'As senhas não coincidem.');
+
+      btn.disabled = true;
+      btn.textContent = 'Criando conta…';
+      try {
+        const r = await apiPost('/api/auth/register', { name, email, password });
+        if (r.ok) {
+          location.assign(afterAuthDestination());
+          return;
+        }
+        showAlert(alert, r.data?.error || 'Não foi possível criar a conta.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Criar conta gratuita';
+      }
+    });
+
+    document.getElementById('google-btn').addEventListener('click', async () => {
+      const r = await apiPost('/api/auth/probe-google', {});
+      if (!r.ok || (r.data && r.data.enabled === false)) {
+        return showAlert(alert, 'Login com Google ainda não configurado nesta instância.');
+      }
+      location.assign('/api/auth/google/start');
+    });
+  </script>
+</body>
+</html>

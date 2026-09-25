@@ -32,26 +32,21 @@ export const projects = [
 export const socialLinks = [
   {
     name: 'Instagram',
-    // TODO: substituir pela URL oficial do Instagram de Senhor Amorim
+    // TODO(substituir apenas quando houver): URL oficial/pessoal do Instagram do Senhor Amorim
     url: 'https://instagram.com/',
     icon: 'instagram',
     label: 'Siga no Instagram',
     color: 'instagram',
-  },
-  {
-    name: 'GitHub',
-    url: 'https://github.com/sramorim',
-    icon: 'github',
-    label: 'Veja no GitHub',
-    color: 'github',
+    updatedAt: '2026-09-25',
   },
   {
     name: 'WhatsApp',
-    // TODO: substituir pelo link oficial do WhatsApp de Senhor Amorim
+    // Canal reservado para o número exclusivo do WhatsApp Business da Central (a definir).
     url: 'https://wa.me/',
     icon: 'whatsapp',
     label: 'Fale pelo WhatsApp',
     color: 'whatsapp',
+    updatedAt: '2026-09-25',
   },
 ];
 

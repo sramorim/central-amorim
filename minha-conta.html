@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minha conta — Central Amorim</title>
+  <meta name="description" content="Sua conta na Central Amorim: perfil, plano e segurança." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/css/style.css" />
+</head>
+<body>
+  <header class="header" role="banner">
+    <div class="container header-inner">
+      <a href="/" class="logo" aria-label="Central Amorim — Página inicial">
+        <span class="logo-mark" aria-hidden="true">SA</span>
+        <span>SENHOR AMORIM</span>
+      </a>
+      <div class="header-actions">
+        <nav class="nav-desktop" role="navigation" aria-label="Menu principal">
+          <a href="/#inicio">Início</a>
+          <a href="/#projetos">Projetos</a>
+          <a href="/planos">Planos</a>
+          <a href="/#sobre">Sobre</a>
+          <a href="/#contato">Contato</a>
+        </nav>
+        <div class="auth-slot" data-auth></div>
+        <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-nav">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+    <nav class="nav-mobile" id="mobile-nav" role="navigation" aria-label="Menu mobile">
+      <a href="/#inicio">Início</a>
+      <a href="/#projetos">Projetos</a>
+      <a href="/planos">Planos</a>
+      <a href="/#sobre">Sobre</a>
+      <a href="/#contato">Contato</a>
+      <span data-auth-mobile></span>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <h1 class="fade-in">Minha conta</h1>
+        <p class="page-hero-sub fade-in fade-in-d1">Perfil, plano e status da sua conta.</p>
+      </div>
+    </section>
+
+    <section class="page-content">
+      <div class="container">
+        <div class="account-ready" id="account-view">
+          <div class="account-shell" id="account-shell">
+            <div class="account-avatar" id="account-avatar" aria-hidden="true">?</div>
+            <div class="account-info">
+              <div class="account-name" id="account-name">…</div>
+              <div class="account-email" id="account-email">…</div>
+              <div class="account-meta" id="account-meta"></div>
+            </div>
+            <div class="account-plan" id="account-plan">
+              <span class="plan-pill plan-pill--free" id="plan-pill">FREE</span>
+              <span class="account-status" id="account-status">ativo</span>
+            </div>
+          </div>
+
+          <div class="account-sections">
+            <section class="account-section">
+              <div class="account-section-head">
+                <div>
+                  <h3 class="account-section-title">Configurações</h3>
+                  <p class="account-section-sub">Preferências da conta.</p>
+                </div>
+                <span class="account-tag account-tag--wip">Área preparada · em desenvolvimento</span>
+              </div>
+            </section>
+
+            <section class="account-section">
+              <div class="account-section-head">
+                <div>
+                  <h3 class="account-section-title">Plano</h3>
+                  <p class="account-section-sub">Acesso e limites da plataforma.</p>
+                </div>
+                <a class="account-tag account-tag--link" href="/planos">Ver planos</a>
+              </div>
+            </section>
+
+            <section class="account-section">
+              <div class="account-section-head">
+                <div>
+                  <h3 class="account-section-title">Segurança</h3>
+                  <p class="account-section-sub">Troca de senha e sessões. Disponibilizado em uma próxima etapa.</p>
+                </div>
+                <span class="account-tag account-tag--wip">Área preparada · em desenvolvimento</span>
+              </div>
+            </section>
+          </div>
+
+          <div class="account-actions">
+            <button class="btn btn-secondary" type="button" id="logout-btn">Sair da conta</button>
+          </div>
+        </div>
+
+        <div class="account-loading hidden" id="account-loading">
+          <p>Carregando sua conta…</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">CENTRAL AMORIM</div>
+          <p class="footer-tagline">Portal da marca Senhor Amorim.</p>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Conta</span>
+          <a href="/entrar">Entrar</a>
+          <a href="/criar-conta">Criar conta</a>
+          <a href="/minha-conta">Minha conta</a>
+          <a href="/planos">Planos</a>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Navegação</span>
+          <a href="/#projetos">Projetos</a>
+          <a href="/#solucoes">Soluções</a>
+          <a href="/#sobre">Sobre</a>
+          <a href="/#contato">Contato</a>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Legal</span>
+          <a href="/creditos">Créditos</a>
+          <a href="/legal">Legal</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Senhor Amorim — Daniel Amorim</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/js/main.js"></script>
+  <script type="module">
+    import { renderAuthSlot, apiGet, apiPost, requireAuth } from '/src/js/auth.js';
+
+    renderAuthSlot();
+
+    const view = document.getElementById('account-view');
+    const loading = document.getElementById('account-loading');
+
+    const planLabels = { FREE: 'Plano gratuito', PRO: 'Plano PRO', ADMIN: 'Acesso administrativo' };
+    const planClasses = { FREE: 'plan-pill--free', PRO: 'plan-pill--pro', ADMIN: 'plan-pill--admin' };
+    const planOrder = { FREE: 1, PRO: 2, ADMIN: 3 };
+
+    (async () => {
+      const { ok, data } = await requireAuth('/minha-conta');
+      if (!ok) return;
+
+      view.classList.remove('hidden');
+      const u = data.user;
+      const plan = u.plan && planLabels[u.plan] ? u.plan : 'FREE';
+      const initial = (u.name || u.email || '?').trim().charAt(0).toUpperCase();
+
+      document.getElementById('account-avatar').textContent = initial;
+      document.getElementById('account-name').textContent = u.name;
+      document.getElementById('account-email').textContent = u.email;
+      document.getElementById('account-meta').textContent = `Conta criada em ${new Date(u.createdAt).toLocaleDateString('pt-BR')}`;
+      document.getElementById('account-plan').querySelector('.plan-pill').textContent = plan;
+      document.getElementById('plan-pill').className = `plan-pill ${planClasses[plan] || 'plan-pill--free'}`;
+      document.getElementById('account-status').textContent = u.status === 'active' ? 'ativo' : u.status;
+
+      document.getElementById('logout-btn').addEventListener('click', async () => {
+        await apiPost('/api/auth/logout', {});
+        location.assign('/');
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,6 +1,16 @@
 name = "central-amorim"
+main = "src/worker.js"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
 [assets]
 directory = "./dist"
+binding = "ASSETS"
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "central-amorim-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"

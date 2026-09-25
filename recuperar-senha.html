@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recuperar senha — Central Amorim</title>
+  <meta name="description" content="Recupere o acesso à sua conta na Central Amorim." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/css/style.css" />
+</head>
+<body>
+  <header class="header" role="banner">
+    <div class="container header-inner">
+      <a href="/" class="logo" aria-label="Central Amorim — Página inicial">
+        <span class="logo-mark" aria-hidden="true">SA</span>
+        <span>SENHOR AMORIM</span>
+      </a>
+      <div class="header-actions">
+        <nav class="nav-desktop" role="navigation" aria-label="Menu principal">
+          <a href="/#inicio">Início</a>
+          <a href="/#projetos">Projetos</a>
+          <a href="/planos">Planos</a>
+          <a href="/#sobre">Sobre</a>
+          <a href="/#contato">Contato</a>
+        </nav>
+        <div class="auth-slot" data-auth></div>
+        <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-nav">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+    <nav class="nav-mobile" id="mobile-nav" role="navigation" aria-label="Menu mobile">
+      <a href="/#inicio">Início</a>
+      <a href="/#projetos">Projetos</a>
+      <a href="/planos">Planos</a>
+      <a href="/#sobre">Sobre</a>
+      <a href="/#contato">Contato</a>
+      <span data-auth-mobile></span>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <h1 class="fade-in">Recuperar senha</h1>
+        <p class="page-hero-sub fade-in fade-in-d1">Defina uma nova senha para a sua conta.</p>
+      </div>
+    </section>
+
+    <section class="page-content">
+      <div class="container">
+        <div class="auth-card">
+          <form id="request-form" novalidate>
+            <label class="form-label" for="email">E-mail cadastrado</label>
+            <input class="form-input" id="email" name="email" type="email" inputmode="email" autocomplete="email" required placeholder="voce@exemplo.com" />
+            <div class="form-alert" role="alert" aria-live="polite"></div>
+            <button class="btn btn-primary btn-block" type="submit">Enviar link de recuperação</button>
+          </form>
+
+          <form id="reset-form" class="hidden" novalidate>
+            <label class="form-label" for="new-password">Nova senha</label>
+            <input class="form-input" id="new-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Mínimo de 8 caracteres" />
+            <label class="form-label" for="new-password2">Confirmar nova senha</label>
+            <input class="form-input" id="new-password2" name="password2" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Repita a nova senha" />
+            <div class="form-alert" role="alert" aria-live="polite"></div>
+            <button class="btn btn-primary btn-block" type="submit">Definir nova senha</button>
+          </form>
+
+          <p class="auth-footnote">
+            <a class="form-link" href="/entrar">Voltar para Entrar</a>
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">CENTRAL AMORIM</div>
+          <p class="footer-tagline">Portal da marca Senhor Amorim.</p>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Conta</span>
+          <a href="/entrar">Entrar</a>
+          <a href="/criar-conta">Criar conta</a>
+          <a href="/minha-conta">Minha conta</a>
+          <a href="/planos">Planos</a>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Navegação</span>
+          <a href="/#projetos">Projetos</a>
+          <a href="/#solucoes">Soluções</a>
+          <a href="/#sobre">Sobre</a>
+          <a href="/#contato">Contato</a>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Legal</span>
+          <a href="/creditos">Créditos</a>
+          <a href="/legal">Legal</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Senhor Amorim — Daniel Amorim</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/js/main.js"></script>
+  <script type="module">
+    import { renderAuthSlot, apiPost, showAlert, validateEmail, validatePassword } from '/src/js/auth.js';
+
+    renderAuthSlot();
+
+    const requestForm = document.getElementById('request-form');
+    const resetForm = document.getElementById('reset-form');
+    const requestAlert = requestForm.querySelector('.form-alert');
+    const resetAlert = resetForm.querySelector('.form-alert');
+    const token = new URLSearchParams(location.search).get('token');
+
+    if (token) {
+      requestForm.classList.add('hidden');
+      resetForm.classList.remove('hidden');
+    }
+
+    requestForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = validateEmail(document.getElementById('email').value);
+      if (!email) return showAlert(requestAlert, 'Informe um e-mail válido.');
+      showAlert(requestAlert, 'Enviando…', 'info');
+      const r = await apiPost('/api/auth/forgot-password', { email });
+      if (r.ok) {
+        showAlert(requestAlert, 'Se o e-mail existir, você receberá um link de recuperação.', 'success');
+        return;
+      }
+      showAlert(requestAlert, r.data?.error || 'Não foi possível processar a solicitação.');
+    });
+
+    resetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = validatePassword(document.getElementById('new-password').value);
+      const password2 = String(document.getElementById('new-password2').value || '');
+      if (!password) return showAlert(resetAlert, 'A senha deve ter entre 8 e 128 caracteres.');
+      if (password !== password2) return showAlert(resetAlert, 'As senhas não coincidem.');
+
+      const r = await apiPost('/api/auth/reset-password', { token, password });
+      if (r.ok) {
+        showAlert(resetAlert, 'Senha atualizada. Faça login novamente.', 'success');
+        resetForm.querySelectorAll('input').forEach(i => i.disabled = true);
+        return;
+      }
+      showAlert(resetAlert, r.data?.error || 'Link inválido ou expirado.');
+    });
+  </script>
+</body>
+</html>
