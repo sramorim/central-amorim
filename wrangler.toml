@@ -13,4 +13,7 @@ enabled = true
 [[d1_databases]]
 binding = "DB"
 database_name = "central-amorim-db"
+# database_id = "<preencher>" — set by the account owner via `wrangler d1 create central-amorim-db`.
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+migrations_table = "d1_migrations"

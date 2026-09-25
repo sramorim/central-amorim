@@ -1,9 +1,8 @@
 -- CENTRAL AMORIM — D1 schema
--- Run against local (tests): npx wrangler d1 execute central-amorim-db --local --file=schema.sql
--- Run against production: npx wrangler d1 execute central-amorim-db --remote --file=schema.sql
--- The worker also applies this schema idempotently on first request (ensureSchema).
-
-PRAGMA journal_mode = WAL;
+-- Apply with the official migrations flow:
+--   wrangler d1 migrations apply central-amorim-db
+-- (migrations/0001_init.sql mirrors the statements below; the Worker also applies
+--  the same DDL idempotently on first request — src/backend/app.js SCHEMA_SQL.)
 
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,

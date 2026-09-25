@@ -397,3 +397,71 @@ test('rotas da API desconhecidas devolvem 404 JSON', async () => {
   const { res } = await call('main', '/api/nao-existe');
   assert.equal(res.status, 404);
 });
+
+test('me() nunca expõe password_hash ou segredos do usuário', async () => {
+  const { headers } = await call('main', '/api/auth/login', {
+    method: 'POST',
+    body: { email: 'ana@teste.com', password: 'senha-segura-123' },
+  });
+  const cookie = `${sessionCookieName()}=${sessionTokenFrom(headers.get('set-cookie'))}`;
+  const { data, res } = await call('main', '/api/auth/me', { cookie });
+  assert.equal(res.status, 200);
+  assert.equal(data.user.email, 'ana@teste.com', 'o dono vê o próprio e-mail');
+  const json = JSON.stringify(data);
+  assert.ok(!/(password|_hash|secret|token)/i.test(json), 'me() não deve vazar credenciais/sessão');
+});
+
+test('access/check decide no servidor e ignora plano enviado pelo cliente', async () => {
+  const { headers } = await call('main', '/api/auth/login', {
+    method: 'POST',
+    body: { email: 'ana@teste.com', password: 'senha-segura-123' },
+  });
+  const cookie = `${sessionCookieName()}=${sessionTokenFrom(headers.get('set-cookie'))}`;
+
+  // Tenta escalar para PRO enviando plan no body — o servidor continua FREE.
+  const attempt = await call('main', '/api/access/check', {
+    method: 'POST',
+    body: { project: 'amorim-osint', limit: 'tools', plan: 'pro' },
+    cookie,
+  });
+  assert.equal(attempt.data.plan, 'FREE');
+
+  // Visitante também não escala por body.
+  const guest = await call('main', '/api/access/check', {
+    method: 'POST',
+    body: { project: 'amorim-osint', limit: 'tools', plan: 'admin', role: 'admin' },
+  });
+  assert.equal(guest.data.plan, 'VISITOR');
+  assert.equal(guest.data.allowed, true);
+  assert.equal(guest.data.limit, 12);
+  assert.equal(guest.data.demo, true);
+});
+
+test('não existe rota pública para alterar plano/entitlement', async () => {
+  const list = [
+    ['POST', '/api/admin/plans'],
+    ['POST', '/api/auth/upgrade'],
+    ['POST', '/api/auth/plan'],
+    ['PUT', '/api/auth/me/plan'],
+    ['POST', '/api/entitlements'],
+  ];
+  for (const [method, path] of list) {
+    const { res } = await call('main', path, { method, body: { plan: 'pro' } });
+    assert.equal(res.status, 404, `${method} ${path} deve ser 404`);
+  }
+});
+
+test('cookie de OAuth state respeita Secure e é HttpOnly/SameSite=Lax', async () => {
+  freshApp('oauth-secure', { GOOGLE_CLIENT_ID: 'c', GOOGLE_CLIENT_SECRET: 's' });
+  const on = await call('oauth-secure', '/api/auth/google/start');
+  const sc = on.headers.get('set-cookie');
+  assert.match(sc, /sam_oauth_state=[0-9a-f]+/);
+  assert.match(sc, /HttpOnly/);
+  assert.match(sc, /SameSite=Lax/);
+  assert.match(sc, /Secure/);
+  assert.match(sc, /Max-Age=600/);
+
+  freshApp('oauth-insecure', { GOOGLE_CLIENT_ID: 'c', GOOGLE_CLIENT_SECRET: 's', COOKIE_SECURE: 'false' });
+  const off = await call('oauth-insecure', '/api/auth/google/start');
+  assert.ok(!off.headers.get('set-cookie').includes('Secure'));
+});

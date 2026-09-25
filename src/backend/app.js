@@ -559,7 +559,9 @@ export function createApp({ db, env = {} }) {
       state,
     });
     const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-    const cookie = `sam_oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`;
+    const stateParts = ['sam_oauth_state=' + state, 'Path=/', 'HttpOnly', 'SameSite=Lax', 'Max-Age=600'];
+    if (cfg.COOKIE_SECURE !== 'false') stateParts.push('Secure');
+    const cookie = stateParts.join('; ');
     return new Response(null, { status: 302, headers: { location: url, 'set-cookie': cookie } });
   });
 
