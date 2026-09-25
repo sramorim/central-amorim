@@ -82,21 +82,31 @@ de ambiente do Worker. Deixar Google/e-mail vazios mantém o funcionamento bási
 - Aplicação oficial no banco remoto:
   `wrangler d1 migrations apply central-amorim-db`
 
-## Produção — runbook (conta dono / máquina com wrangler)
+## Produção — runbook
 
-1. Autenticar: `wrangler login` (ou exportar `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`).
-2. Criar o banco: `wrangler d1 create central-amorim-db` → copiar o
-   `database_id` para `wrangler.toml` (substituir `REPLACE_WITH_D1_DATABASE_ID`).
-3. Aplicar migrations: `wrangler d1 migrations apply central-amorim-db`.
-4. Build: `npm run build`.
-5. Envs do Worker: `PUBLIC_ORIGIN`, `COOKIE_DOMAIN=;`, `ADMIN_EMAILS`, e os opcionais
-   de Google/e-mail, via dashboard/wrangler (nunca no código).
-6. Deploy: `wrangler deploy` (sai junto `[assets]` dist + `main` do Worker).
+### Pipeline canônico: GitHub Actions (`.github/workflows/deploy.yml`)
+- Dispara em push para `main` e `workflow_dispatch`: `npm ci` → `npm run build` →
+  `npx wrangler deploy`, com as credenciais vindas dos Secrets do repo
+  `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` (nunca fixadas em arquivo).
+- O `account_id` NÃO é fixado no `wrangler.toml`; vem exclusivamente do
+  Secret/ambiente. NÃO colocar valor literal aqui (um valor com 31 hex — falta
+  um caractere — faz a API retornar `7003`/`404` ("object identifier is invalid")).
 
-> Não há GitHub Actions no repo ainda (o fluxo oficial usado em outros projetos é o
-> workflow `Deploy to Cloudflare Workers` com os secrets `CLOUDFLARE_API_TOKEN` e
-> `CLOUDFLARE_ACCOUNT_ID`). Decisão consciente: deploy da Central é manual até o dono
-> preferir criar esse workflow.
+### Para o dono da conta (única ação manual restrita ao dashboard Cloudflare)
+1. Desativar o **Cloudflare Workers Builds** da Central (Workers → "central-amorim" →
+   Builds → desativar). Sem isso, há DOIS pipelines publicando o mesmo Worker a cada
+   push (GH Actions + Builds).
+2. Garantir que o Secret `CLOUDFLARE_ACCOUNT_ID` do repo tenha o Account ID correto
+   (32 hex). O caminho completo: `dash.cloudflare.com` → domínio/Conta → roda do
+   Workers → id em "Account ID" (topo da página do Workers, ou na URL da conta).
+
+### Passos manuais alternativos (máquina com wrangler)
+- Autenticar: `wrangler login` (ou exportar `CLOUDFLARE_API_TOKEN` +
+  `CLOUDFLARE_ACCOUNT_ID`).
+- Aplicar migrations: `wrangler d1 migrations apply central-amorim-db`.
+- Envs do Worker: `PUBLIC_ORIGIN`, `COOKIE_DOMAIN=;`, `ADMIN_EMAILS`, e os opcionais
+  de Google/e-mail, via dashboard/wrangler (nunca no código).
+- Deploy manual equivalente: `npm run build && npx wrangler deploy`.
 
 ## Testes
 

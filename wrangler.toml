@@ -1,5 +1,6 @@
 name = "central-amorim"
-account_id = "8e46a3797f3f7ca0d27fad80844b3dd"
+# A conta (account_id, 32 hex) é injetada pelo CI via CLOUDFLARE_ACCOUNT_ID;
+# deploy local usa a sessão `wrangler login`. Não fixar valor aqui.
 main = "src/worker.js"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
