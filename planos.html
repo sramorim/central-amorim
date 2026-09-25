@@ -52,6 +52,13 @@
 
     <section class="page-content">
       <div class="container">
+        <div class="billing-toggle" id="billing-toggle" role="group" aria-label="Frequência de cobrança">
+          <button type="button" class="billing-opt is-active" data-billing="monthly">Mensal</button>
+          <button type="button" class="billing-opt" data-billing="annual">
+            Anual<span class="billing-save">2 meses grátis</span>
+          </button>
+        </div>
+
         <div class="plan-grid" id="plan-grid">
           <div class="plan-card plan-card--skeleton">
             <div class="skeleton-line skeleton-w60"></div>
@@ -61,8 +68,8 @@
 
         <div class="plans-notice">
           <p>
-            O plano <strong>PRO</strong> será expandido conforme novos recursos forem liberados nos projetos.
-            Nesta etapa não há checkout nem cobrança: o PRO é uma estrutura interna para evolução futura.
+            O plano <strong>PRO</strong> libera a árvore completa do AMORIM OSINT. Nesta etapa ainda não há
+            cobrança: o checkout será habilitado em uma próxima etapa.
           </p>
           <p class="plans-current" id="plans-current"></p>
         </div>
@@ -111,34 +118,34 @@
 
     const grid = document.getElementById('plan-grid');
     const current = document.getElementById('plans-current');
-
-    const FEATURES = {
-      FREE: ['Conta gratuita', 'Acesso básico aos projetos', 'Limites definidos pela plataforma', 'Identidade única entre projetos'],
-      PRO: ['Recursos ampliados', 'Acesso premium aos projetos compatíveis', 'Será expandido conforme novos recursos', 'Sem cobrança nesta etapa'],
-      ADMIN: ['Acesso administrativo', 'Gestão da plataforma', 'Uso interno'],
-    };
+    const toggle = document.getElementById('billing-toggle');
+    const opts = toggle ? Array.from(toggle.querySelectorAll('.billing-opt')) : [];
 
     const TONES = { FREE: '', PRO: 'plan-card--pro', ADMIN: 'plan-card--admin' };
+    const PERIOD = { monthly: 'por mês', annual: 'por ano' };
 
-    (async () => {
-      const { ok, data } = await apiGet('/api/plans');
-      const me = await apiGet('/api/auth/me');
-      const myPlan = me.ok && me.data.authenticated ? me.data.user.plan : null;
-
-      if (!ok || !data || !data.plans) {
-        grid.innerHTML = '<p class="plans-error">Não foi possível carregar os planos.</p>';
-        return;
+    const fmtBRL = (v) => `R$ ${Number(v).toFixed(2).replace('.', ',')}`;
+    const priceHtml = (plan, billing) => {
+      if (!plan.billing || !plan.billing.monthly) {
+        return `<div class="plan-price"><span class="plan-price-value plan-price-value--free">Grátis</span><span class="plan-price-period">para sempre</span></div>`;
       }
+      const value = billing === 'annual' ? plan.billing.annual : plan.billing.monthly;
+      const save = billing === 'annual' && plan.billing.annualNote ? `<span class="plan-price-save">${plan.billing.annualNote}</span>` : '';
+      return `<div class="plan-price"><span class="plan-price-value">${fmtBRL(value)}</span><span class="plan-price-period">/ ${PERIOD[billing]}</span>${save}</div>`;
+    };
 
-      grid.innerHTML = data.plans
+    let currentBilling = 'monthly';
+
+    function render(plans, myPlan) {
+      grid.innerHTML = plans
         .map((p) => {
-          const features = FEATURES[p.code] || [];
+          const features = p.features || [];
           const isMine = myPlan === p.code;
           const cta =
             p.code === 'FREE'
               ? (myPlan ? `<span class="plan-current-tag">Seu plano atual</span>` : `<a class="btn btn-primary" href="/criar-conta">Criar conta gratuita</a>`)
               : p.code === 'PRO'
-                ? `<span class="plan-soon-tag">Em expansão — em breve</span>`
+                ? (p.available ? `<a class="btn btn-primary" href="/assinar/pro">Assinar PRO</a>` : `<span class="plan-soon-tag">Assinatura em breve</span>`)
                 : `<span class="plan-soon-tag" style="background:rgba(43,107,255,.08);color:var(--accent-strong);border-color:var(--accent-line)">Uso interno</span>`;
           return `
           <article class="plan-card ${TONES[p.code] || ''}">
@@ -146,6 +153,7 @@
               <span class="plan-code">${p.code}</span>
               <h3 class="plan-title">${p.label}</h3>
             </header>
+            ${priceHtml(p, currentBilling)}
             <p class="plan-descriptor">${p.descriptor}</p>
             <ul class="plan-features">
               ${features.map((f) => `<li>${f}</li>`).join('')}
@@ -156,11 +164,38 @@
           </article>`;
         })
         .join('');
+    }
+
+    if (toggle) {
+      opts.forEach((opt) => {
+        opt.addEventListener('click', () => {
+          opts.forEach((o) => o.classList.toggle('is-active', o === opt));
+          currentBilling = opt.dataset.billing;
+          const me = window.__plansMe;
+          const pl = window.__plans;
+          if (pl) render(pl, me);
+        });
+      });
+    }
+
+    (async () => {
+      const { ok, data } = await apiGet('/api/plans');
+      const me = await apiGet('/api/auth/me');
+      const myPlan = me.ok && me.data.authenticated ? me.data.user.plan : null;
+      window.__plansMe = myPlan;
+
+      if (!ok || !data || !data.plans) {
+        grid.innerHTML = '<p class="plans-error">Não foi possível carregar os planos.</p>';
+        return;
+      }
+
+      window.__plans = data.plans;
+      render(data.plans, myPlan);
 
       if (myPlan) {
-        current.textContent = `Sua conta está no plano ${myPlan === 'PRO' ? 'PRO' : myPlan === 'ADMIN' ? 'ADMIN' : 'grátis (FREE)'}. O upgrade para PRO será habilitado em uma próxima etapa.`;
+        current.textContent = `Sua conta está no plano ${myPlan === 'PRO' ? 'PRO' : myPlan === 'ADMIN' ? 'ADMIN' : 'grátis (FREE)'}. O PRO libera a árvore completa do AMORIM OSINT.`;
       } else {
-        current.textContent = 'Crie uma conta gratuita para desbloquear o acesso básico da plataforma.';
+        current.textContent = 'Crie uma conta gratuita para acessar as categorias de entrada do AMORIM OSINT.';
       }
     })();
   </script>

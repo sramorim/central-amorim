@@ -1233,6 +1233,81 @@ button { cursor: pointer; font: inherit; }
   color: var(--text);
 }
 
+.billing-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1.6rem auto 2.1rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-raised);
+  width: fit-content;
+}
+
+.billing-opt {
+  padding: 0.55rem 1.15rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 600 0.85rem/1 var(--font-body);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.billing-opt.is-active {
+  color: #fff;
+  background: var(--accent-strong);
+}
+
+.billing-save {
+  display: inline-block;
+  margin-left: 0.45rem;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: rgba(52, 211, 153, 0.14);
+  color: #34d399;
+  vertical-align: middle;
+}
+
+.plan-price {
+  margin: 0.85rem 0 0.3rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.plan-price-value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.plan-price-value--free {
+  color: var(--accent-strong);
+}
+
+.plan-price-period {
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+}
+
+.plan-price-save {
+  display: inline-block;
+  margin-top: 0.35rem;
+  width: 100%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #34d399;
+}
+
 .plans-current {
   margin: 0.9rem 0 0;
   padding-top: 0.9rem;

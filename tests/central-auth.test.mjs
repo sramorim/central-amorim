@@ -257,6 +257,11 @@ test('catálogo de planos expõe FREE/PRO/ADMIN', async () => {
   assert.deepEqual(codes, ['FREE', 'PRO', 'ADMIN']);
   const pro = data.plans.find((p) => p.code === 'PRO');
   assert.equal(pro.available, false, 'PRO sem checkout nesta etapa');
+  assert.equal(pro.billing.monthly, 29.9, 'PRO mensal definido');
+  assert.equal(pro.billing.annual, 299, 'PRO anual definido');
+  assert.ok(Array.isArray(pro.features) && pro.features.length > 0, 'PRO expõe lista de recursos');
+  const free = data.plans.find((p) => p.code === 'FREE');
+  assert.deepEqual(free.limits.freeCategories, ['Username', 'Search Engines', 'AI Tools', 'Encoding / Decoding', 'Archives']);
 });
 
 test('access/check para visitante devolve limite demo', async () => {
@@ -281,10 +286,10 @@ test('access/check para conta FREE devolve limites do plano', async () => {
   const tools = await call('main', '/api/access/check', { method: 'POST', body: { limit: 'tools' }, cookie });
   assert.equal(tools.data.plan, 'FREE');
   assert.equal(tools.data.demo, false);
-  assert.equal(tools.data.limit, 250);
+  assert.equal(tools.data.limit, 156);
 
   const cats = await call('main', '/api/access/check', { method: 'POST', body: { limit: 'categories' }, cookie });
-  assert.equal(cats.data.limit, 20);
+  assert.equal(cats.data.limit, 5);
 
   const exp = await call('main', '/api/access/check', { method: 'POST', body: { limit: 'export' }, cookie });
   assert.equal(exp.data.limit, false);

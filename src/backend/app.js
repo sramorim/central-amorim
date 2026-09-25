@@ -27,19 +27,43 @@ export const PLANS = {
   free: {
     code: 'FREE',
     label: 'Plano gratuito',
-    descriptor: 'Acesso básico aos projetos. Recursos gratuitos com limites definidos pela plataforma.',
+    descriptor:
+      'Conta gratuita com acesso de entrada ao AMORIM OSINT: categorias selecionadas para experimentar a árvore de ferramentas.',
     order: 1,
+    billing: { currency: 'BRL', monthly: 0, annual: 0 },
+    features: [
+      'Conta gratuita — sem cartão',
+      'AMORIM OSINT: 5 categorias de entrada',
+      '156 ferramentas selecionadas para teste',
+      'Exportação de dados: não disponível',
+      'Demais categorias desbloqueáveis no PRO',
+    ],
     limits: {
-      'amorim-osint': { categories: 20, tools: 250, export: false, demo: false },
+      'amorim-osint': {
+        categories: 5,
+        tools: 156,
+        export: false,
+        demo: false,
+        freeCategories: ['Username', 'Search Engines', 'AI Tools', 'Encoding / Decoding', 'Archives'],
+      },
     },
   },
   pro: {
     code: 'PRO',
     label: 'Plano PRO',
-    descriptor: 'Recursos ampliados e premium. Será expandido conforme novos recursos forem liberados na plataforma.',
+    descriptor:
+      'Acesso completo ao AMORIM OSINT: toda a árvore de ferramentas, exportação liberada e novos recursos em primeiro lugar.',
     order: 2,
+    billing: { currency: 'BRL', monthly: 29.9, annual: 299, annualNote: 'equivalente a 2 meses grátis' },
+    features: [
+      'Árvore AMORIM OSINT completa: 33 categorias',
+      '1.168 ferramentas de investigação',
+      'Exportação de dados liberada',
+      'Acesso antecipado a novos recursos',
+      'Assinatura mensal ou anual',
+    ],
     limits: {
-      'amorim-osint': { categories: 99, tools: 1168, export: true, demo: false, premium: true },
+      'amorim-osint': { categories: 33, tools: 1168, export: true, demo: false, premium: true },
     },
   },
   admin: {
@@ -47,8 +71,10 @@ export const PLANS = {
     label: 'Acesso administrativo',
     descriptor: 'Acesso administrativo da plataforma.',
     order: 3,
+    billing: null,
+    features: ['Acesso administrativo', 'Gestão da plataforma', 'Uso interno'],
     limits: {
-      'amorim-osint': { categories: 99, tools: 1168, export: true, demo: false, full: true },
+      'amorim-osint': { categories: 33, tools: 1168, export: true, demo: false, full: true },
     },
   },
 };
@@ -481,6 +507,9 @@ export function createApp({ db, env = {} }) {
         label: p.label,
         descriptor: p.descriptor,
         order: p.order,
+        billing: p.billing,
+        features: p.features || [],
+        limits: p.limits ? p.limits['amorim-osint'] || null : null,
         available: p.code !== 'PRO' || false,
       })),
     });
