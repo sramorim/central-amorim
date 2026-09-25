@@ -1,4 +1,5 @@
 name = "central-amorim"
+account_id = "8e46a3797f3f7ca0d27fad80844b3dd"
 main = "src/worker.js"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
