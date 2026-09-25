@@ -196,6 +196,12 @@ button { cursor: pointer; font: inherit; }
   height: var(--header-h);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 /* Logo */
 .logo {
   display: flex;
@@ -287,6 +293,8 @@ button { cursor: pointer; font: inherit; }
   visibility: hidden;
   transition: opacity 0.25s ease, visibility 0.25s ease;
   z-index: 99;
+  overflow-y: auto;
+  padding-bottom: 1.5rem;
 }
 
 .nav-mobile.open {
@@ -308,6 +316,14 @@ button { cursor: pointer; font: inherit; }
 .nav-mobile a:hover {
   color: var(--text);
   background: rgba(43, 107, 255, 0.08);
+}
+
+/* No mobile, os chips de conta ficam dentro do menu (data-auth-mobile);
+   o slot do desktop sai do header pra não duplicar nem desalinhar. */
+@media (max-width: 767.98px) {
+  .header-actions .auth-slot {
+    display: none;
+  }
 }
 
 /* =========================================
