@@ -20,11 +20,12 @@ function renderProjects() {
   grid.innerHTML = projects
     .map(
       (p) => `
-    <article class="project-card">
+    <article class="project-card${p.featured ? ' project-card--featured' : ''}">
       <div class="project-card-top">
         <div class="project-icon" aria-hidden="true">${p.icon}</div>
         <span class="project-status status-${p.status}">${p.statusLabel}</span>
       </div>
+      ${p.featured ? '<span class="project-pin">Principal</span>' : ''}
       <h3 class="project-name">${p.name}</h3>
       <span class="project-category">${p.category}</span>
       <p class="project-description">${p.description}</p>

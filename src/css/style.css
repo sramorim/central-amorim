@@ -626,6 +626,34 @@ button { cursor: pointer; font: inherit; }
   padding: 1.625rem;
 }
 
+.project-card--featured {
+  border-color: var(--accent-line);
+  background: linear-gradient(180deg, var(--accent-soft) 0%, var(--bg-card) 55%);
+}
+
+.project-card--featured .project-icon {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent-strong);
+}
+
+.project-card--featured .project-name {
+  color: var(--accent-strong);
+}
+
+.project-pin {
+  align-self: flex-start;
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 100px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
 .project-card:hover {
   border-color: var(--accent-line);
   background: var(--bg-card-hover);
