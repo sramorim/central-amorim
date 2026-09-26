@@ -58,7 +58,13 @@
             <input class="form-input" id="email" name="email" type="email" inputmode="email" autocomplete="email" required placeholder="voce@exemplo.com" />
 
             <label class="form-label" for="password">Senha</label>
-            <input class="form-input" id="password" name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="Sua senha" />
+            <div class="password-wrap">
+              <input class="form-input" id="password" name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="Sua senha" />
+              <button class="password-toggle" type="button" aria-label="Mostrar senha" aria-pressed="false" tabindex="-1">
+                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
 
             <div class="form-row-between">
               <a class="form-link" href="/recuperar-senha">Esqueci minha senha</a>
@@ -70,9 +76,9 @@
             <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Entrar</button>
           </form>
 
-          <div class="auth-divider"><span>ou</span></div>
+          <div class="auth-divider" id="google-divider"><span>ou</span></div>
 
-          <button class="btn btn-secondary btn-block" type="button" id="google-btn">
+          <button class="btn btn-secondary btn-block" type="button" id="google-btn" hidden>
             Continuar com Google
           </button>
 
@@ -149,12 +155,24 @@
       }
     });
 
-    document.getElementById('google-btn').addEventListener('click', async () => {
-      const r = await apiPost('/api/auth/probe-google', {});
-      if (!r.ok || (r.data && r.data.enabled === false)) {
-        return showAlert(alert, 'Login com Google ainda não configurado nesta instância.');
+    apiPost('/api/auth/probe-google', {}).then((r) => {
+      if (!r.ok || !r.data || r.data.enabled !== true) {
+        const g = document.getElementById('google-btn');
+        const d = document.getElementById('google-divider');
+        if (g) g.hidden = true;
+        if (d) d.hidden = true;
       }
-      location.assign('/api/auth/google/start');
+    });
+
+    document.querySelectorAll('.password-toggle').forEach((t) => {
+      const input = t.closest('.password-wrap').querySelector('input');
+      const show = () => {
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        t.setAttribute('aria-label', isHidden ? 'Ocultar senha' : 'Mostrar senha');
+        t.classList.toggle('is-on', isHidden);
+      };
+      t.addEventListener('click', show);
     });
   </script>
 </body>

@@ -973,6 +973,49 @@ button { cursor: pointer; font: inherit; }
   cursor: not-allowed;
 }
 
+.password-wrap {
+  position: relative;
+}
+
+.password-wrap .form-input {
+  padding-right: 3rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.55rem;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  padding: 0.4rem;
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  color: var(--text);
+  outline: none;
+}
+
+.password-toggle svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.password-toggle .eye-off,
+.password-toggle.is-on .eye-on {
+  display: none;
+}
+
+.password-toggle.is-on .eye-off {
+  display: block;
+}
+
 .form-alert {
   margin-top: 1.15rem;
   padding: 0.75rem 1rem;

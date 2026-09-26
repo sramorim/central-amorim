@@ -61,19 +61,31 @@
             <input class="form-input" id="email" name="email" type="email" inputmode="email" autocomplete="email" required placeholder="voce@exemplo.com" />
 
             <label class="form-label" for="password">Senha</label>
-            <input class="form-input" id="password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Mínimo de 8 caracteres" />
+            <div class="password-wrap">
+              <input class="form-input" id="password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Mínimo de 8 caracteres" />
+              <button class="password-toggle" type="button" aria-label="Mostrar senha" aria-pressed="false" tabindex="-1">
+                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
 
             <label class="form-label" for="password2">Confirmar senha</label>
-            <input class="form-input" id="password2" name="password2" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Repita a senha" />
+            <div class="password-wrap">
+              <input class="form-input" id="password2" name="password2" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Repita a senha" />
+              <button class="password-toggle" type="button" aria-label="Mostrar senha" aria-pressed="false" tabindex="-1">
+                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
 
             <div class="form-alert" role="alert" aria-live="polite"></div>
 
             <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Criar conta gratuita</button>
           </form>
 
-          <div class="auth-divider"><span>ou</span></div>
+          <div class="auth-divider" id="google-divider"><span>ou</span></div>
 
-          <button class="btn btn-secondary btn-block" type="button" id="google-btn">Continuar com Google</button>
+          <button class="btn btn-secondary btn-block" type="button" id="google-btn" hidden>Continuar com Google</button>
 
           <p class="auth-footnote">
             Já tem conta? <a class="form-link" href="/entrar">Entrar</a> ·
@@ -130,37 +142,55 @@
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = validateName(document.getElementById('name').value);
-      const email = validateEmail(document.getElementById('email').value);
-      const password = validatePassword(document.getElementById('password').value);
-      const password2 = String(document.getElementById('password2').value || '');
-
-      if (!name) return showAlert(alert, 'Informe seu nome (2 a 80 caracteres).');
-      if (!email) return showAlert(alert, 'Informe um e-mail válido.');
-      if (!password) return showAlert(alert, 'A senha deve ter entre 8 e 128 caracteres.');
-      if (password !== password2) return showAlert(alert, 'As senhas não coincidem.');
-
-      btn.disabled = true;
-      btn.textContent = 'Criando conta…';
       try {
-        const r = await apiPost('/api/auth/register', { name, email, password });
-        if (r.ok) {
-          location.assign(afterAuthDestination());
-          return;
+        const name = validateName(document.getElementById('name').value);
+        const email = validateEmail(document.getElementById('email').value);
+        const password = validatePassword(document.getElementById('password').value);
+        const password2 = String(document.getElementById('password2').value || '');
+
+        if (!name) return showAlert(alert, 'Informe seu nome (2 a 80 caracteres).');
+        if (!email) return showAlert(alert, 'Informe um e-mail válido.');
+        if (!password) return showAlert(alert, 'A senha deve ter entre 8 e 128 caracteres.');
+        if (password !== password2) return showAlert(alert, 'As senhas não coincidem.');
+
+        btn.disabled = true;
+        btn.textContent = 'Criando conta…';
+        try {
+          const r = await apiPost('/api/auth/register', { name, email, password });
+          if (r.ok) {
+            location.assign(afterAuthDestination());
+            return;
+          }
+          showAlert(alert, r.data?.error || 'Não foi possível criar a conta.');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Criar conta gratuita';
         }
-        showAlert(alert, r.data?.error || 'Não foi possível criar a conta.');
-      } finally {
+      } catch (err) {
+        showAlert(alert, 'Ocorreu um erro inesperado. Tente novamente.');
         btn.disabled = false;
         btn.textContent = 'Criar conta gratuita';
       }
     });
 
-    document.getElementById('google-btn').addEventListener('click', async () => {
-      const r = await apiPost('/api/auth/probe-google', {});
-      if (!r.ok || (r.data && r.data.enabled === false)) {
-        return showAlert(alert, 'Login com Google ainda não configurado nesta instância.');
+    apiPost('/api/auth/probe-google', {}).then((r) => {
+      if (!r.ok || !r.data || r.data.enabled !== true) {
+        const g = document.getElementById('google-btn');
+        const d = document.getElementById('google-divider');
+        if (g) g.hidden = true;
+        if (d) d.hidden = true;
       }
-      location.assign('/api/auth/google/start');
+    });
+
+    document.querySelectorAll('.password-toggle').forEach((t) => {
+      const input = t.closest('.password-wrap').querySelector('input');
+      const show = () => {
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        t.setAttribute('aria-label', isHidden ? 'Ocultar senha' : 'Mostrar senha');
+        t.classList.toggle('is-on', isHidden);
+      };
+      t.addEventListener('click', show);
     });
   </script>
 </body>
