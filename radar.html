@@ -65,9 +65,13 @@
     ul.list li b { color: var(--text); font-weight: 600; }
     .btn { margin-top: 18px; display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; color: #062b33; font-weight: 800; font-size: 13px; padding: 11px 18px; border-radius: 999px; cursor: pointer; }
     .btn:disabled { opacity: .4; cursor: not-allowed; }
-    details.help { margin-top: 14px; font-size: 13px; }
+    details.help { margin-top: 16px; font-size: 13px; background: rgba(255,255,255,.02); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
     details.help summary { cursor: pointer; color: var(--accent-2); font-weight: 600; font-size: 13px; }
-    details.help ol { margin: 10px 0 0 18px; color: var(--muted); line-height: 1.7; }
+    details.help[open] summary { margin-bottom: 6px; }
+    details.help ol { margin: 8px 0 0 18px; color: var(--muted); line-height: 1.75; }
+    details.help li { margin-bottom: 6px; }
+    details.help code { background: rgba(255,255,255,.07); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 12px; color: var(--text); }
+    details.help small { color: var(--muted); opacity: .8; }
     .hint { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
     .note { margin-top: 22px; font-size: 12px; color: var(--muted); line-height: 1.6; border-top: 1px solid var(--line); padding-top: 16px; }
     .note b { color: var(--text); }
@@ -109,13 +113,19 @@
       </div>
       <p class="hint">Os nomes são dados pelo arquivo: se o nome não deixar claro se é "antes" ou "depois", a ordem dos arquivos abaixo conta (o de cima = mais antigo). Dica: baixe um hoje e guarde pra comparar depois.</p>
 
-      <details class="help">
-        <summary>Como conseguir os arquivos oficiais?</summary>
+      <details class="help" open>
+        <summary>Como obter os arquivos? (caminho dentro do Instagram)</summary>
         <ol>
-          <li>Instagram → <b>Configurações → Central de Contas → Suas informações e permissões → Baixar suas informações</b>.</li>
-          <li>Formato <b>JSON</b>, seção <b>Seguidores e seguindo</b>, solicite o download (chega por e-mail).</li>
-          <li>Os arquivos são <b>followers_1.json</b> (seguidores) e <b>following.json</b> (seguindo).</li>
-          <li>Também aceito .txt/.csv com um nome por linha.</li>
+          <li><b>Abra o Instagram</b> (app ou site) → <b>Seu perfil → ☰ (menu) → Configurações e privacidade</b>.</li>
+          <li>Toque em <b>Central de Contas → Suas informações e permissões → Baixar suas informações</b>.<br />
+            <small>Em algumas contas o caminho direto é: Configurações → Sua atividade → Baixar suas informações.</small></li>
+          <li>Escolha sua conta → <b>Avançar</b> → deixe a maior faixa de datas disponível.</li>
+          <li>Formato: escolha <b>JSON</b>. ⚠️ <b>Não escolha HTML</b> — esta ferramenta lê apenas JSON.</li>
+          <li>Em "Selecione as informações", marque apenas <b>Seguidores e seguindo</b> → envie a solicitação.</li>
+          <li>Baixe o <b>.zip</b> do e-mail e descompacte. Os arquivos ficam em:<br />
+            <code>…/your_instagram_activity/connections/followers_and_following/</code><br />
+            → <code>followers_1.json</code> (Seguidores) e <code>following.json</code> (Seguindo).</li>
+          <li><b>Dica para o Radar:</b> baixe hoje (vira o "depois") e guarde um backup de antes — assim a comparação funciona. Também aceita .txt/.csv (um nome por linha).</li>
         </ol>
       </details>
     </div>

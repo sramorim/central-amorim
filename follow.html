@@ -68,9 +68,13 @@
     .btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
     .note { margin-top: 22px; font-size: 12px; color: var(--muted); line-height: 1.6; border-top: 1px solid var(--line); padding-top: 16px; }
     .note a { color: var(--accent); text-decoration: none; }
-    details.help { margin-top: 14px; font-size: 13px; }
+    details.help { margin-top: 16px; font-size: 13px; background: rgba(255,255,255,.02); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
     details.help summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 13px; }
-    details.help ol { margin: 10px 0 0 18px; color: var(--muted); line-height: 1.7; }
+    details.help[open] summary { margin-bottom: 6px; }
+    details.help ol { margin: 8px 0 0 18px; color: var(--muted); line-height: 1.75; }
+    details.help li { margin-bottom: 6px; }
+    details.help code { background: rgba(255,255,255,.07); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 12px; color: var(--text); }
+    details.help small { color: var(--muted); opacity: .8; }
     .empty { color: var(--ok); font-size: 12px; padding: 12px 16px; }
     .footer { margin-top: 40px; text-align: center; color: var(--muted); font-size: 11px; }
   </style>
@@ -103,13 +107,20 @@
         </label>
       </div>
 
-      <details class="help">
-        <summary>Como exportar meus dados (oficial, sem apps de terceiros)?</summary>
+      <details class="help" open>
+        <summary>Como obter meus dados? (caminho dentro do Instagram)</summary>
         <ol>
-          <li>No Instagram: <b>Configurações → Central de Contas → Suas informações e permissões → Baixar suas informações</b>.</li>
-          <li>Escolha conta, formato <b>JSON</b> (ou HTML) e marque seções: <b>Seguidores e seguindo</b>.</li>
-          <li>Peça o download, receba por e-mail e descompacte. Os arquivos se chamam <b>following.json</b> e <b>followers_1.json</b>.</li>
-          <li>Solte os dois aqui e veja o resultado. Também aceita arquivos .txt/.csv (um nome de usuário por linha).</li>
+          <li><b>Abra o Instagram</b> (app ou site) → <b>Seu perfil → ☰ (menu) → Configurações e privacidade</b>.</li>
+          <li>Toque em <b>Central de Contas → Suas informações e permissões → Baixar suas informações</b>.<br />
+            <small>Em algumas contas o caminho direto é: Configurações → Sua atividade → Baixar suas informações.</small></li>
+          <li>Escolha sua conta → <b>Avançar</b> → deixe a maior faixa de datas disponível.</li>
+          <li>Formato: escolha <b>JSON</b>. ⚠️ <b>Não escolha HTML</b> — esta ferramenta lê apenas JSON.</li>
+          <li>Em "Selecione as informações", marque apenas <b>Seguidores e seguindo</b> → envie a solicitação.</li>
+          <li>Quando chegar o e-mail (pode levar até 48h), baixe o <b>.zip</b> e descompacte.</li>
+          <li>Dentro da pasta extraída procure o caminho:<br />
+            <code>…/your_instagram_activity/connections/followers_and_following/</code><br />
+            e pegue <code>following.json</code> (Seguindo) e <code>followers_1.json</code> (Seguidores).</li>
+          <li><b>Solte os dois arquivos aqui</b> (ou arraste para as caixas acima). Também aceita .txt/.csv com um nome de usuário por linha.</li>
         </ol>
       </details>
     </div>
