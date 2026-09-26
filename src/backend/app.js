@@ -19,6 +19,8 @@ const TOKEN_BYTES = 32;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+import { installShandonOsint } from './shandon-osint.js';
+
 /* ------------------------------------------------------------------ */
 /* Plans / Entitlements model                                          */
 /* ------------------------------------------------------------------ */
@@ -328,9 +330,24 @@ function isMutating(method) {
 function originAllowed(request, env) {
   const origin = request.headers.get('Origin');
   if (!origin) return true; // same-site / non-browser
-  const allowed = new Set([env.PUBLIC_ORIGIN].filter(Boolean));
+  const allowed = new Set([env.PUBLIC_ORIGIN, env.SHANDON_ORIGIN].filter(Boolean));
   if (env.ALLOW_NULL_ORIGIN === '1') allowed.add('null');
   return allowed.has(origin);
+}
+
+/* CORS para o app do SHANDON ELITE consumir as ferramentas hospedadas aqui. */
+function corsFor(request, env) {
+  const origin = request.headers.get('Origin');
+  if (!origin) return {};
+  const allowed = new Set([env.PUBLIC_ORIGIN, env.SHANDON_ORIGIN].filter(Boolean));
+  if (env.ALLOW_NULL_ORIGIN === '1') allowed.add('null');
+  if (!allowed.has(origin)) return {};
+  return {
+    'access-control-allow-origin': origin,
+    'access-control-allow-methods': 'GET, POST, OPTIONS',
+    'access-control-allow-headers': 'Content-Type, Authorization, x-api-key, x-requested-with',
+    vary: 'Origin',
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -448,8 +465,12 @@ export function createApp({ db, env = {} }) {
     PIX_CITY: env.PIX_CITY || 'BRASIL',
     PIX_AMOUNT_BRL: env.PIX_AMOUNT_BRL || '9.99',
     WA_NUMBER: env.WA_NUMBER || '',
+    SHANDON_ORIGIN: env.SHANDON_ORIGIN || 'https://elite.senhoramorim.com.br',
   };
   const router = new Map();
+
+  /* -------- ferramentas do Shandon no Workers (sem dormir) -------- */
+  installShandonOsint({ router, json, readBody, rateLimit, cfg, corsFor: (request) => corsFor(request, cfg) });
 
   /* -------- rate limit -------- */
   async function rateLimit(key, max = 6, winMs = 60_000) {
@@ -861,7 +882,12 @@ export function createApp({ db, env = {} }) {
 
       const handler = router.get(`${method} ${url.pathname}`);
       if (!handler) {
-        if (url.pathname.startsWith('/api/')) return json({ ok: false, error: 'Rota não encontrada.' }, 404);
+        if (url.pathname.startsWith('/api/')) {
+          if (method === 'OPTIONS') {
+            return new Response(null, { status: 204, headers: corsFor(request, cfg) || {} });
+          }
+          return json({ ok: false, error: 'Rota não encontrada.' }, 404);
+        }
         return new Response('Não encontrado', { status: 404 });
       }
       try {
