@@ -633,8 +633,8 @@ button { cursor: pointer; font: inherit; }
 
 .project-card--featured .project-icon {
   color: #fff;
-  background: var(--accent);
-  border-color: var(--accent-strong);
+  background: transparent;
+  border-color: transparent;
 }
 
 .project-card--featured .project-name {
@@ -670,8 +670,8 @@ button { cursor: pointer; font: inherit; }
   width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
+  background: transparent;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;

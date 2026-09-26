@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SENTINELA — Análise da sua conversa no WhatsApp</title>
-  <meta name="description" content="Analise conversas exportadas do WhatsApp: quem mais fala, palavras e emojis mais usados, horários de pico e calendário de atividade — tudo offline." />
+  <title>SENTINELA — Análise de grupos e conversas do WhatsApp</title>
+  <meta name="description" content="Extraia os participantes de um grupo do WhatsApp (nomes e telefones quando visíveis) e veja quem mais fala, palavras e emojis mais usados, horários e calendário — tudo offline." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -78,6 +78,18 @@
     .chips { display: flex; flex-wrap: wrap; gap: 8px; }
     .chip { font-size: 12px; border: 1px solid var(--line); background: var(--panel-2); border-radius: 999px; padding: 6px 12px; }
     .chip b { color: var(--accent); }
+    .members { margin-top: 14px; display: grid; gap: 6px; max-height: 460px; overflow: auto; padding-right: 4px; }
+    .mrow { display: grid; grid-template-columns: 28px minmax(0, 1fr) 128px; gap: 10px; align-items: center; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+    .mrank { color: var(--muted); font-size: 11px; font-weight: 700; }
+    .mwho { min-width: 0; }
+    .mwho b { font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .mwho .phone { color: var(--accent); font-size: 10px; font-weight: 600; letter-spacing: .03em; }
+    .mwho small { color: var(--muted); font-size: 10px; display: block; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .msgs { text-align: right; }
+    .msgs b { font-size: 15px; }
+    .msgs span { font-size: 10px; color: var(--accent); margin-left: 4px; }
+    .msgs .track { height: 4px; margin-top: 5px; }
+    .msgs .fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); min-width: 2px; }
     .btn { margin-top: 18px; display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, var(--accent-2), var(--accent)); border: none; color: #04231a; font-weight: 800; font-size: 13px; padding: 11px 18px; border-radius: 999px; cursor: pointer; }
     .btn:disabled { opacity: .4; cursor: not-allowed; }
     .note { margin-top: 22px; font-size: 12px; color: var(--muted); line-height: 1.6; border-top: 1px solid var(--line); padding-top: 16px; }
@@ -97,42 +109,48 @@
   <div class="wrap">
     <header>
       <a class="logo" href="/">
-        <span class="logo-mark" aria-hidden="true">SA</span>
+        <span class="logo-mark" aria-hidden="true"><svg width="38" height="38" viewBox="0 0 40 40"><defs><linearGradient id="lg-sentinela" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2bd467"/><stop offset="1" stop-color="#0f8f70"/></linearGradient></defs><rect x="1" y="1" width="38" height="38" rx="11" fill="url(#lg-sentinela)"/><g fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9.5c-5.6 0-10.2 4-10.2 9 0 2.8 1.5 5.3 3.8 6.9l-.6 3.4 3.8-1.4c1 .3 2.1.5 3.2.5 5.6 0 10.2-4 10.2-9s-4.6-9.4-10.2-9.4z"/></g><g stroke="#fff" stroke-width="1.7" stroke-linecap="round"><line x1="16" y1="16" x2="16" y2="20.5"/><line x1="19.2" y1="14.5" x2="19.2" y2="22"/><line x1="22.4" y1="16.5" x2="22.4" y2="19.5"/></g></svg></span>
         <span><b>SR. AMORIM</b><small>CENTRAL AMORIM</small></span>
       </a>
       <a class="back" href="/">← Voltar</a>
     </header>
 
     <h1><span class="grad">SENTINELA</span></h1>
-    <p class="tagline">Análise completa de uma conversa exportada do WhatsApp: <b>quem mais fala, emojis e palavras mais usados, horário de pico e calendário de mensagens</b>. Pode ser de conversa 1:1 ou de grupo — tudo é processado <b>dentro do seu dispositivo</b>, nada sai daqui.</p>
+    <p class="tagline">Análise de conversas de <b>grupo</b> do WhatsApp: extrai a lista de <b>participantes que falaram</b> (nome e telefone quando o WhatsApp mostra o número), <b>quem mais fala</b>, horário de pico, calendário de mensagens, palavras e emojis mais usados. Tudo 100% <b>dentro do seu dispositivo</b>.</p>
 
     <div class="card">
-      <h2>1 · Importe a conversa</h2>
+      <h2>1 · Importe a conversa do grupo</h2>
       <label class="drop" id="drop-chat">
-        <b>💬 Arquivo <em>.txt</em></b>
+        <b>👥 Conversa de grupo — arquivo <em>.txt</em></b>
         <span>Exportação da conversa ("Exportar conversa" → Sem mídia)</span>
         <input type="file" id="file-chat" accept=".txt" />
       </label>
 
       <details class="help" open>
-        <summary>Como exportar uma conversa?</summary>
+        <summary>Como exportar a conversa de um grupo?</summary>
         <ol>
-          <li><b>Abra o WhatsApp</b> (Android ou iPhone) e entre na conversa que quer analisar.</li>
-          <li>Toque no ⋮ (três pontos) ou no nome do contato/grupo → <b>Mais → Exportar conversa</b>.</li>
-          <li>Escolha <b>Sem mídia</b> (arquivo leve, só o texto) → salve o <b>.txt</b>.</li>
-          <li><b>Solte o arquivo aqui</b> (ou arraste para a caixa acima). Funciona com os formatos do Android e do iPhone.</li>
-          <li>Pronto: você vê quem mais fala, quando a conversa é mais ativa, as palavras e emojis mais usados.</li>
+          <li><b>Abra o WhatsApp</b> (Android ou iPhone) e entre no grupo que quer analisar.</li>
+          <li>Toque no ⋮ (três pontos) ou no nome do grupo → <b>Mais → Exportar conversa</b>.</li>
+          <li>Escolha <b>Sem mídia</b> (arquivo leve) → salve o <b>.txt</b>.</li>
+          <li><b>Solte o arquivo aqui</b> (funciona com os formatos do Android e do iPhone).</li>
+          <li>Você vê os <b>participantes extraídos</b>, quem manda mais, quando o grupo é mais ativo e as palavras/emojis mais usados.</li>
         </ol>
+        <small>Obs.: o arquivo traz todas as pessoas que <b>enviaram pelo menos uma mensagem</b> (quem nunca falou não aparece). O <b>telefone</b> aparece quando o WhatsApp mostra o número cru — ou seja, contatos <b>não salvos</b> no seu celular. Contatos salvos aparecem com o nome da sua agenda.</small>
       </details>
     </div>
 
     <div class="card" id="results" hidden>
-      <h2>2 · Análise da conversa</h2>
+      <h2>2 · Análise do grupo</h2>
       <p class="overview" id="overview"></p>
       <div class="stats" id="stats"></div>
 
       <div class="block">
-        <h3>Quem mais fala</h3>
+        <h3>Participantes detectados (todos)</h3>
+        <div class="members" id="members"></div>
+      </div>
+
+      <div class="block">
+        <h3>Quem mais participa (top 10)</h3>
         <div class="bars" id="users"></div>
       </div>
 
@@ -162,7 +180,7 @@
         <div class="chips" id="emojis"></div>
       </div>
 
-      <button class="btn" id="export-btn" disabled>⬇️ Exportar análise (.csv)</button>
+      <button class="btn" id="export-btn" disabled>⬇️ Exportar participantes (.csv)</button>
     </div>
 
     <p class="note">
@@ -265,12 +283,18 @@
         var totalWords = 0, totalMedia = 0, totalLinks = 0, totalEmojis = 0;
         var first = null, last = null;
         var starters = {};
+        var perUser = {};
 
         for (var i = 0; i < userMsgs.length; i++) {
           var m = userMsgs[i];
           var key = m.sender.toLowerCase();
           userCount[key] = (userCount[key] || 0) + 1;
           userNames[key] = userNames[key] || m.sender;
+          if (!perUser[key]) perUser[key] = { name: m.sender, count: 0, words: 0, emojis: 0, links: 0, media: 0, first: m.d, last: m.d };
+          var pu = perUser[key];
+          pu.count++;
+          pu.last = m.d;
+          if (!pu.first || m.d < pu.first) pu.first = m.d;
           var h = m.d.getHours();
           hours[h] = (hours[h] || 0) + 1;
           days[(m.d.getDay() + 6) % 7] = (days[(m.d.getDay() + 6) % 7] || 0) + 1;
@@ -282,9 +306,10 @@
 
           var body = m.body;
           var isMedia = MEDIA_RE.test(body);
-          if (isMedia) totalMedia++; else {
+          if (isMedia) { totalMedia++; pu.media++; } else {
             var toks = body.split(/\s+/).filter(Boolean);
             totalWords += toks.length;
+            pu.words += toks.length;
             for (var t = 0; t < toks.length; t++) {
               var w = toks[t].toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
               if (w.length < 3 || STOP.has(w) || /^\d+$/.test(w)) continue;
@@ -292,9 +317,9 @@
             }
           }
           var links = body.match(/https?:\/\/\S+/gi);
-          if (links) totalLinks += links.length;
+          if (links) { totalLinks += links.length; pu.links += links.length; }
           var em = body.match(/\p{Extended_Pictographic}/gu);
-          if (em) for (var e = 0; e < em.length; e++) emojis[em[e]] = (emojis[em[e]] || 0) + 1;
+          if (em) { for (var e = 0; e < em.length; e++) emojis[em[e]] = (emojis[em[e]] || 0) + 1; pu.emojis += em.length; }
           totalEmojis += em ? em.length : 0;
 
           var prev = i > 0 ? userMsgs[i - 1] : null;
@@ -320,6 +345,7 @@
         ].join('');
 
         document.getElementById('users').innerHTML = usersHTML(userCount, userNames);
+        document.getElementById('members').innerHTML = membersHTML(perUser);
         document.getElementById('hours').innerHTML = barsHTML(hours, function (i) { return i + 'h'; });
         document.getElementById('days').innerHTML = barsHTML(days, function (i) { return DAYS[i]; });
         document.getElementById('heat').innerHTML = heatHTML(monthsAll, years);
@@ -331,12 +357,51 @@
       function usersHTML(count, names) {
         var total = 0;
         Object.keys(count).forEach(function (k) { total += count[k]; });
-        var arr = Object.keys(count).map(function (k) { return { name: names[k], n: count[k] }; });
+        var arr = Object.keys(count).map(function (k) { return { name: names[k], n: count[k], key: k }; });
         arr.sort(function (a, b) { return b.n - a.n; });
         return arr.slice(0, 10).map(function (u) {
           var pct = Math.round((u.n / total) * 100);
-          return '<div class="bar"><span>' + escapeHtml(u.name) + '</span><div class="track"><div class="fill" style="width:' + Math.max(pct, 2) + '%"></div></div><b>' + u.n + ' · ' + pct + '%</b></div>';
+          var nm = isPhone(u.name) ? ph(u.key) : u.name;
+          return '<div class="bar"><span>' + escapeHtml(nm) + '</span><div class="track"><div class="fill" style="width:' + Math.max(pct, 2) + '%"></div></div><b>' + u.n + ' · ' + pct + '%</b></div>';
         }).join('');
+      }
+
+      function isPhone(s) {
+        return /^\+?[0-9]/.test(s) && /\d{8,}/.test(String(s).replace(/\D/g, ''));
+      }
+
+      function ph(raw) {
+        var d = String(raw).replace(/\D/g, '');
+        if (d.length === 13) return '+' + d.slice(0, 2) + ' ' + d.slice(2, 4) + ' ' + d.slice(4, 9) + '-' + d.slice(9);
+        if (d.length === 12) return '+' + d.slice(0, 2) + ' ' + d.slice(2, 6) + '-' + d.slice(6);
+        if (d.length === 11) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+        if (d.length === 10) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+        return String(raw);
+      }
+
+      function membersHTML(perUser) {
+        var keys = Object.keys(perUser);
+        var total = keys.reduce(function (a, k) { return a + perUser[k].count; }, 0);
+        keys.sort(function (a, b) { return perUser[b].count - perUser[a].count; });
+        if (!keys.length) return '<span class="empty">Sem participantes com mensagens.</span>';
+        return keys.map(function (k, idx) {
+          var u = perUser[k];
+          var sub = [];
+          if (u.words) sub.push(nfmt(u.words) + ' palavras');
+          if (u.emojis) sub.push(nfmt(u.emojis) + ' emojis');
+          if (u.links) sub.push(nfmt(u.links) + ' links');
+          if (u.media) sub.push(nfmt(u.media) + ' mídias');
+          var phone = isPhone(u.name) ? '<span class="phone">☎ ' + escapeHtml(ph(u.key)) + '</span>' : '';
+          var pct = Math.round((u.count / total) * 100);
+          return '<div class="mrow"><span class="mrank">#' + (idx + 1) + '</span>' +
+            '<div class="mwho"><b>' + escapeHtml(isPhone(u.name) ? ph(u.key) : u.name) + phone + '</b>' +
+            '<small>' + sub.join(' · ') + (u.first ? ' · ' + fmt(u.first) + ' → ' + fmt(u.last) : '') + '</small></div>' +
+            '<div class="msgs"><b>' + nfmt(u.count) + '</b><span>' + pct + '%</span><div class="track"><div class="fill" style="width:' + Math.max(pct, 2) + '%"></div></div></div></div>';
+        }).join('');
+      }
+
+      function nfmt(n) {
+        return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
       }
 
       function barsHTML(counts, labelOf) {
@@ -408,19 +473,34 @@
       }
 
       document.getElementById('export-btn').addEventListener('click', function () {
-        var rows = [['campo', 'valor']];
-        var userCount = {}, userNames = {};
+        var perUser = {};
         for (var i = 0; i < msgs.length; i++) {
           var m = msgs[i];
           if (!m.sender) continue;
           var key = m.sender.toLowerCase();
-          userCount[key] = (userCount[key] || 0) + 1;
-          userNames[key] = userNames[key] || m.sender;
+          if (!perUser[key]) perUser[key] = { name: m.sender, key: key, count: 0, words: 0, emojis: 0, links: 0, media: 0, first: null, last: null };
+          var u = perUser[key];
+          u.count++;
+          u.last = m.d;
+          if (!u.first || m.d < u.first) u.first = m.d;
+          var body = m.body;
+          if (MEDIA_RE.test(body)) { u.media++; continue; }
+          u.words += body.split(/\s+/).filter(Boolean).length;
+          var links = body.match(/https?:\/\/\S+/gi);
+          if (links) u.links += links.length;
+          var em = body.match(/\p{Extended_Pictographic}/gu);
+          if (em) u.emojis += em.length;
         }
-        Object.keys(userCount).sort(function (a, b) { return userCount[b] - userCount[a]; }).forEach(function (k) {
-          rows.push([escapeHtml(userNames[k]), userCount[k]]);
+        var total = 0;
+        Object.keys(perUser).forEach(function (k) { total += perUser[k].count; });
+        var rows = [['nome', 'telefone', 'mensagens', 'palavras', 'emojis', 'links', 'midias', 'primeira', 'ultima', 'pct']];
+        Object.keys(perUser).sort(function (a, b) { return perUser[b].count - perUser[a].count; }).forEach(function (k) {
+          var u = perUser[k];
+          var nome = isPhone(u.name) ? ph(u.key) : u.name;
+          rows.push([nome, isPhone(u.name) ? ph(u.key) : '', u.count, u.words, u.emojis, u.links, u.media,
+            u.first ? fmt(u.first) : '', u.last ? fmt(u.last) : '', Math.round((u.count / total) * 100)]);
         });
-        var csv = rows.map(function (r) { return '"' + r.join('","') + '"'; }).join('\n');
+        var csv = rows.map(function (r) { return '"' + r.map(function (c) { return String(c).replace(/"/g, '""'); }).join('","') + '"'; }).join('\n');
         var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
