@@ -24,7 +24,7 @@ PIX_KEY = "ee2ee68d-3e68-4458-a32e-d34af93772ef"
 WA_NUMBER = ""
 # E-mail(s) admin: o mesmo da conta que o dono usa para entrar no painel /admin.
 # Ex.: ADMIN_EMAILS = "contato.centralamorim@gmail.com"
-ADMIN_EMAILS = ""
+ADMIN_EMAILS = "daniamo2026@gmail.com"
 
 [observability]
 enabled = true
