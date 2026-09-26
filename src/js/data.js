@@ -1,5 +1,19 @@
 export const projects = [
   {
+    id: 'amorim-follow',
+    name: 'AMORIM FOLLOW',
+    description:
+      'Descubra quem não te segue de volta no Instagram. Importe seus próprios dados oficiais e compare no navegador — sem enviar nada a servidores.',
+    category: 'Instagram & Redes',
+    status: 'published',
+    statusLabel: 'Publicado',
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6 11 4.6a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>',
+    subdomain: 'senhoramorim.com.br/follow',
+    url: '/follow',
+    urlLabel: 'Abrir Ferramenta',
+    buttonStyle: 'primary',
+  },
+  {
     id: 'amorim-osint',
     name: 'AMORIM OSINT',
     description:

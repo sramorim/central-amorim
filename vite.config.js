@@ -19,6 +19,7 @@ export default defineConfig({
         'recuperar-senha': resolve(__dirname, 'recuperar-senha.html'),
         planos: resolve(__dirname, 'planos.html'),
         'minha-conta': resolve(__dirname, 'minha-conta.html'),
+        follow: resolve(__dirname, 'follow.html'),
       },
     },
   },

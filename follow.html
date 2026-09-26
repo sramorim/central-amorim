@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AMORIM FOLLOW — Quem não te segue de volta</title>
+  <meta name="description" content="Descubra quem não te segue de volta no Instagram. Importe seus próprios dados oficiais e compare no navegador, sem enviar nada para servidores." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --accent: #2b6bff;
+      --accent-violet: #7c5cff;
+      --bg: #0b0f19;
+      --panel: #111827;
+      --panel-2: #151d2f;
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #ecf1f8;
+      --muted: #94a3b8;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
+    body { min-height: 100vh; background: radial-gradient(1100px 520px at 85% -10%, rgba(124,92,255,.16), transparent 60%), radial-gradient(900px 500px at 5% -5%, rgba(43,107,255,.18), transparent 55%), var(--bg); }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 28px 18px 64px; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 30px; }
+    .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
+    .logo-mark { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-violet)); }
+    .logo b { letter-spacing: .12em; font-size: 13px; }
+    .logo small { display: block; color: var(--muted); font-size: 10px; letter-spacing: .18em; }
+    .back { color: var(--muted); font-size: 12px; text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+    .back:hover { color: var(--text); border-color: var(--accent); }
+    h1 { font-size: clamp(24px, 4.5vw, 34px); letter-spacing: .02em; line-height: 1.15; }
+    h1 .grad { background: linear-gradient(90deg, var(--accent), var(--accent-violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .tagline { color: var(--muted); margin-top: 8px; font-size: 15px; line-height: 1.6; max-width: 620px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-top: 26px; }
+    .card h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 640px) { .inputs { grid-template-columns: 1fr; } }
+    .drop { border: 1.5px dashed rgba(124,92,255,.4); border-radius: 12px; padding: 18px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; position: relative; }
+    .drop:hover, .drop.drag { border-color: var(--accent-violet); background: rgba(124,92,255,.06); }
+    .drop.loaded { border-style: solid; border-color: var(--ok); background: rgba(52,211,153,.06); }
+    .drop b { display: block; font-size: 13px; margin-bottom: 4px; }
+    .drop span { font-size: 11px; color: var(--muted); }
+    .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
+    @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 12px; }
+    .stat .num { font-size: 22px; font-weight: 800; }
+    .stat .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+    .groups { margin-top: 22px; display: grid; gap: 16px; }
+    .group { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .group-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; background: var(--panel-2); }
+    .group-head b { font-size: 13px; }
+    .group-head .chip { font-size: 11px; border-radius: 999px; padding: 3px 10px; font-weight: 700; }
+    .chip.warn { background: rgba(251,191,36,.14); color: var(--warn); }
+    .chip.danger { background: rgba(248,113,113,.14); color: var(--danger); }
+    .chip.ok { background: rgba(52,211,153,.14); color: var(--ok); }
+    ul.list { list-style: none; max-height: 240px; overflow: auto; padding: 8px 16px 14px; display: grid; gap: 2px; }
+    ul.list li { font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.03); }
+    ul.list li b { color: var(--text); font-weight: 600; }
+    .btn { margin-top: 18px; display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, var(--accent), var(--accent-violet)); border: none; color: #fff; font-weight: 700; font-size: 13px; padding: 11px 18px; border-radius: 999px; cursor: pointer; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+    .note { margin-top: 22px; font-size: 12px; color: var(--muted); line-height: 1.6; border-top: 1px solid var(--line); padding-top: 16px; }
+    .note a { color: var(--accent); text-decoration: none; }
+    details.help { margin-top: 14px; font-size: 13px; }
+    details.help summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 13px; }
+    details.help ol { margin: 10px 0 0 18px; color: var(--muted); line-height: 1.7; }
+    .empty { color: var(--ok); font-size: 12px; padding: 12px 16px; }
+    .footer { margin-top: 40px; text-align: center; color: var(--muted); font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="logo" href="/">
+        <span class="logo-mark" aria-hidden="true">SA</span>
+        <span><b>SENHOR AMORIM</b><small>CENTRAL AMORIM</small></span>
+      </a>
+      <a class="back" href="/">← Voltar</a>
+    </header>
+
+    <h1>AMORIM <span class="grad">FOLLOW</span></h1>
+    <p class="tagline">Descubra quem não te segue de volta, quem te segue sem retorno e os mútuos. Importe os <b>seus próprios dados</b> oficiais do Instagram — tudo é comparado <b>dentro do seu dispositivo</b>, nada sai daqui.</p>
+
+    <div class="card">
+      <h2>1 · Importe seus arquivos</h2>
+      <div class="inputs">
+        <label class="drop" id="drop-following">
+          <b>📤 Arquivo <em>Seguindo</em></b>
+          <span>following.json (ou lista de nomes)</span>
+          <input type="file" id="file-following" accept=".json,.txt,.csv" />
+        </label>
+        <label class="drop" id="drop-followers">
+          <b>📥 Arquivo <em>Seguidores</em></b>
+          <span>followers_1.json (ou lista de nomes)</span>
+          <input type="file" id="file-followers" accept=".json,.txt,.csv" />
+        </label>
+      </div>
+
+      <details class="help">
+        <summary>Como exportar meus dados (oficial, sem apps de terceiros)?</summary>
+        <ol>
+          <li>No Instagram: <b>Configurações → Central de Contas → Suas informações e permissões → Baixar suas informações</b>.</li>
+          <li>Escolha conta, formato <b>JSON</b> (ou HTML) e marque seções: <b>Seguidores e seguindo</b>.</li>
+          <li>Peça o download, receba por e-mail e descompacte. Os arquivos se chamam <b>following.json</b> e <b>followers_1.json</b>.</li>
+          <li>Solte os dois aqui e veja o resultado. Também aceita arquivos .txt/.csv (um nome de usuário por linha).</li>
+        </ol>
+      </details>
+    </div>
+
+    <div class="card" id="results" hidden>
+      <h2>2 · Resultado</h2>
+      <div class="stats" id="stats"></div>
+
+      <div class="groups" id="groups"></div>
+
+      <button class="btn" id="export-btn" disabled>⬇️ Exportar resultados (.csv)</button>
+    </div>
+
+    <p class="note">
+      🔒 <b>Privacidade primeiro:</b> os arquivos são processados 100% no seu navegador e nunca são enviados a nenhum servidor.
+      Esta ferramenta usa apenas os dados que <b>você mesmo</b> baixou da sua conta.
+      Projeto oficial de Senhor Amorim — <a href="/">Central Amorim</a>.
+    </p>
+
+    <p class="footer">© 2026 Senhor Amorim — Daniel Amorim · AMORIM FOLLOW</p>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var state = { following: [], followers: [] };
+
+      function norm(u) {
+        return String(u || '').trim().replace(/^@/, '').toLowerCase();
+      }
+
+      function collectUsernames(obj, out) {
+        if (!obj || typeof obj !== 'object') return;
+        if (Array.isArray(obj)) {
+          for (var i = 0; i < obj.length; i++) {
+            if (Array.isArray(obj[i] && obj[i].string_list_data)) {
+              for (var j = 0; j < obj[i].string_list_data.length; j++) {
+                var u = norm(obj[i].string_list_data[j] && obj[i].string_list_data[j].value);
+                if (u) out.push(u);
+              }
+            } else {
+              collectUsernames(obj[i], out);
+            }
+          }
+          return;
+        }
+        if (Array.isArray(obj.string_list_data)) {
+          for (var k = 0; k < obj.string_list_data.length; k++) {
+            var v = norm(obj.string_list_data[k] && obj.string_list_data[k].value);
+            if (v) out.push(v);
+          }
+        }
+        if (Array.isArray(obj.children)) collectUsernames(obj.children, out);
+        if (Array.isArray(obj.relationships_following)) collectUsernames(obj.relationships_following, out);
+      }
+
+      function parseText(text) {
+        var out = [];
+        var lines = (text || '').split(/\r?\n/);
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i].trim();
+          if (!line) continue;
+          var first = line.split(/[,\t;]/)[0];
+          var u = norm(first);
+          if (u) out.push(u);
+        }
+        return out;
+      }
+
+      function parseFileType(name) {
+        var n = (name || '').toLowerCase();
+        if (n.includes('following')) return 'following';
+        if (n.includes('follower')) return 'followers';
+        return null;
+      }
+
+      function parseList(name, content) {
+        if (String(content).trim().charAt(0) === '[' || String(content).trim().charAt(0) === '{') {
+          var out = [];
+          try {
+            collectUsernames(JSON.parse(content), out);
+            if (out.length) return out;
+          } catch (e) { /* fallback para texto */ }
+        }
+        return parseText(content);
+      }
+
+      function setDrop(el, labelSpan, count) {
+        el.classList.add('loaded');
+        el.querySelector('b').innerHTML = '✅ ' + labelSpan;
+        el.querySelector('span').textContent = count + (count === 1 ? ' nome' : ' nomes') + ' lidos';
+      }
+
+      function bind(side, fileId, dropId) {
+        var input = document.getElementById(fileId);
+        var drop = document.getElementById(dropId);
+        input.addEventListener('change', function () {
+          var file = input.files && input.files[0];
+          if (!file) return;
+          if (!parseFileType(file.name) && !state[side].length) {
+            var guess = side === 'following' ? 'Seguindo' : 'Seguidores';
+            if (!window.confirm('Não identifiquei o tipo pelo nome ("' + file.name + '").\nContei como ' + guess + '. Continuar?')) return;
+          }
+          var reader = new FileReader();
+          reader.onload = function () {
+            var list = parseList(file.name, reader.result);
+            state[side] = list;
+            setDrop(drop, side === 'following' ? 'Seguindo' : 'Seguidores', list.length);
+            render();
+          };
+          reader.readAsText(file);
+        });
+        ['dragover', 'dragenter'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('drag'); }); });
+        ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('drag'); }); });
+      }
+
+      function uid(name) { return '#username-' + name.replace(/[^a-z0-9]/g, '-'); }
+
+      function render() {
+        var fwSet = new Set(state.following);
+        var frSet = new Set(state.followers);
+        var mutual = state.following.filter(function (u) { return frSet.has(u); });
+        var notBack = state.following.filter(function (u) { return !frSet.has(u); });
+        var ghost = state.followers.filter(function (u) { return !fwSet.has(u); });
+
+        var nothing = document.getElementById('results');
+        if (!state.following.length && !state.followers.length) {
+          nothing.hidden = true;
+          return;
+        }
+        nothing.hidden = false;
+
+        document.getElementById('stats').innerHTML = [
+          stat(state.following.length, 'Seguindo'),
+          stat(state.followers.length, 'Seguidores'),
+          stat(notBack.length, 'Você segue e <br>ele não te segue'),
+          stat(mutual.length, 'Mútuos (se seguem)'),
+        ].join('');
+
+        var groups = [
+          group('⚠️ Você segue e ele não te segue', notBack, 'warn', 'danger'),
+          group('👻 Te segue, mas você não segue', ghost, 'ok'),
+          group('🤝 Mútuos', mutual, 'ok'),
+        ].join('');
+
+        document.getElementById('groups').innerHTML = groups;
+        document.getElementById('export-btn').disabled = false;
+      }
+
+      function stat(num, lbl) {
+        return '<div class="stat"><div class="num">' + num + '</div><div class="lbl">' + lbl + '</div></div>';
+      }
+
+      function group(title, list, chipClass, chipTextClass) {
+        if (!list.length) {
+          return '<div class="group"><div class="group-head"><b>' + title + '</b><span class="chip ok">0</span></div></div>';
+        }
+        var html = '<div class="group"><div class="group-head"><b>' + title + '</b>' +
+          '<span class="chip ' + (chipClass || 'ok') + '">' + list.length + '</span></div><ul class="list">';
+        list.slice().sort().forEach(function (u) {
+          html += '<li><span>' + escapeHtml(u) + '</span></li>';
+        });
+        html += '</ul></div>';
+        return html;
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      function csvEscape(s) {
+        return '"' + String(s).replace(/"/g, '""') + '"';
+      }
+
+      document.getElementById('export-btn').addEventListener('click', function () {
+        var rows = [['grupo', 'usuario']];
+        var fwSet = new Set(state.following), frSet = new Set(state.followers);
+        state.following.filter(function (u) { return !frSet.has(u); }).forEach(function (u) { rows.push(['nao-followback', u]); });
+        state.followers.filter(function (u) { return !fwSet.has(u); }).forEach(function (u) { rows.push(['ghost', u]); });
+        state.following.filter(function (u) { return frSet.has(u); }).forEach(function (u) { rows.push(['mutuo', u]); });
+        var csv = rows.map(function (r) { return r.map(csvEscape).join(','); }).join('\n');
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'amorim-follow-resultado.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+
+      bind('following', 'file-following', 'drop-following');
+      bind('followers', 'file-followers', 'drop-followers');
+    })();
+  </script>
+</body>
+</html>
