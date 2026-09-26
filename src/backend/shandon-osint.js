@@ -26,6 +26,107 @@ const METADATA = {
   },
 };
 
+/* -------------------------- Phone OSINT (compartilhado) -------------------------- */
+const COUNTRY_CODES = {
+  '1': 'US/CA', '44': 'UK', '55': 'Brazil', '91': 'India', '86': 'China',
+  '33': 'France', '49': 'Germany', '81': 'Japan', '82': 'South Korea',
+  '34': 'Spain', '39': 'Italy', '61': 'Australia', '7': 'Russia',
+  '27': 'South Africa', '52': 'Mexico', '46': 'Sweden', '47': 'Norway',
+  '45': 'Denmark', '358': 'Finland', '48': 'Poland', '420': 'Czech Republic',
+  '36': 'Hungary', '40': 'Romania', '90': 'Turkey', '20': 'Egypt',
+  '966': 'Saudi Arabia', '971': 'UAE', '972': 'Israel', '65': 'Singapore',
+  '60': 'Malaysia', '62': 'Indonesia', '63': 'Philippines', '66': 'Thailand',
+  '84': 'Vietnam',
+};
+
+function parsePhoneNumber(input) {
+  const digits = String(input).replace(/[^\d+]/g, '').replace(/^\+/, '');
+  for (const [code, min] of [['1', 11], ['44', 12], ['55', 13], ['91', 12], ['86', 13], ['33', 11], ['49', 12], ['81', 12]]) {
+    if (digits.startsWith(code) && digits.length >= min) {
+      return { digits, countryCode: code, nationalNumber: digits.slice(code.length) };
+    }
+  }
+  return { digits, countryCode: '', nationalNumber: digits };
+}
+
+async function fetchTimeout(url, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function checkNumverify(phone) {
+  try {
+    const response = await fetchTimeout(
+      `https://apilayer.net/api/validate?access_key=demo&number=${encodeURIComponent(phone)}&country_code=&format=1`,
+      6000
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data.valid !== undefined) {
+        return { carrier: data.carrier || '', lineType: data.line_type || '', country: data.country_name || '' };
+      }
+    }
+  } catch {
+    /* numverify indisponível */
+  }
+  return { carrier: '', lineType: '', country: '' };
+}
+
+async function checkWhatsApp(phone) {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(`https://wa.me/${phone}`, {
+      signal: controller.signal,
+      redirect: 'manual',
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+    clearTimeout(timer);
+    return response.status === 200 || response.status === 302;
+  } catch {
+    return false;
+  }
+}
+
+async function checkSocialMedia(phone) {
+  const profiles = [];
+  try {
+    const response = await fetchTimeout(`https://api.telegram.org/bot${phone}/getMe`, 3000);
+    profiles.push({ platform: 'Telegram', url: `https://t.me/${phone}`, exists: response.ok });
+  } catch {
+    profiles.push({ platform: 'Telegram', url: `https://t.me/${phone}`, exists: false });
+  }
+  return profiles;
+}
+
+export async function runPhoneOsint(rawPhone) {
+  const { digits, countryCode } = parsePhoneNumber(rawPhone);
+  const country = COUNTRY_CODES[countryCode] || 'Unknown';
+  const [numverify, whatsapp, socialMedia] = await Promise.all([
+    checkNumverify(digits),
+    checkWhatsApp(digits),
+    checkSocialMedia(digits),
+  ]);
+  const valid = digits.length >= 7 && digits.length <= 15;
+  return {
+    phone: String(rawPhone).trim(),
+    valid,
+    country: numverify.country || country,
+    carrier: numverify.carrier,
+    lineType: numverify.lineType,
+    whatsapp,
+    socialMedia,
+  };
+}
+
 export function installShandonOsint(ctx) {
   const { router, json, readBody, rateLimit, cfg, corsFor } = ctx;
 
@@ -148,106 +249,7 @@ export function installShandonOsint(ctx) {
   });
 
   /* -------------------------- Phone OSINT -------------------------- */
-  const COUNTRY_CODES = {
-    '1': 'US/CA', '44': 'UK', '55': 'Brazil', '91': 'India', '86': 'China',
-    '33': 'France', '49': 'Germany', '81': 'Japan', '82': 'South Korea',
-    '34': 'Spain', '39': 'Italy', '61': 'Australia', '7': 'Russia',
-    '27': 'South Africa', '52': 'Mexico', '46': 'Sweden', '47': 'Norway',
-    '45': 'Denmark', '358': 'Finland', '48': 'Poland', '420': 'Czech Republic',
-    '36': 'Hungary', '40': 'Romania', '90': 'Turkey', '20': 'Egypt',
-    '966': 'Saudi Arabia', '971': 'UAE', '972': 'Israel', '65': 'Singapore',
-    '60': 'Malaysia', '62': 'Indonesia', '63': 'Philippines', '66': 'Thailand',
-    '84': 'Vietnam',
-  };
-
-  function parsePhoneNumber(input) {
-    const digits = String(input).replace(/[^\d+]/g, '').replace(/^\+/, '');
-    for (const [code, min] of [['1', 11], ['44', 12], ['55', 13], ['91', 12], ['86', 13], ['33', 11], ['49', 12], ['81', 12]]) {
-      if (digits.startsWith(code) && digits.length >= min) {
-        return { digits, countryCode: code, nationalNumber: digits.slice(code.length) };
-      }
-    }
-    return { digits, countryCode: '', nationalNumber: digits };
-  }
-
-  async function fetchTimeout(url, timeoutMs = 10000) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      return await fetch(url, {
-        signal: controller.signal,
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-      });
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  async function checkNumverify(phone) {
-    try {
-      const response = await fetchTimeout(
-        `https://apilayer.net/api/validate?access_key=demo&number=${encodeURIComponent(phone)}&country_code=&format=1`,
-        6000
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (data.valid !== undefined) {
-          return { carrier: data.carrier || '', lineType: data.line_type || '', country: data.country_name || '' };
-        }
-      }
-    } catch {
-      /* numverify indisponível */
-    }
-    return { carrier: '', lineType: '', country: '' };
-  }
-
-  async function checkWhatsApp(phone) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
-      const response = await fetch(`https://wa.me/${phone}`, {
-        signal: controller.signal,
-        redirect: 'manual',
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-      });
-      clearTimeout(timer);
-      return response.status === 200 || response.status === 302;
-    } catch {
-      return false;
-    }
-  }
-
-  async function checkSocialMedia(phone) {
-    const profiles = [];
-    try {
-      const response = await fetchTimeout(`https://api.telegram.org/bot${phone}/getMe`, 3000);
-      profiles.push({ platform: 'Telegram', url: `https://t.me/${phone}`, exists: response.ok });
-    } catch {
-      profiles.push({ platform: 'Telegram', url: `https://t.me/${phone}`, exists: false });
-    }
-    return profiles;
-  }
-
-  async function analyzePhone(rawPhone) {
-    const { digits, countryCode } = parsePhoneNumber(rawPhone);
-    const country = COUNTRY_CODES[countryCode] || 'Unknown';
-    const [numverify, whatsapp, socialMedia] = await Promise.all([
-      checkNumverify(digits),
-      checkWhatsApp(digits),
-      checkSocialMedia(digits),
-    ]);
-    const valid = digits.length >= 7 && digits.length <= 15;
-    return {
-      phone: String(rawPhone).trim(),
-      valid,
-      country: numverify.country || country,
-      carrier: numverify.carrier,
-      lineType: numverify.lineType,
-      whatsapp,
-      socialMedia,
-    };
-  }
-
+  /* ------------------------- Phone OSINT ------------------------- */
   router.set('POST /api/phone-osint', async (request, context) => {
     const rl = await rateLimit(`phone:${context.ip}`, 10);
     if (!rl.ok) return json({ success: false, error: 'Muitas consultas. Aguarde um instante.' }, 429, corsFor(request));
@@ -256,7 +258,7 @@ export function installShandonOsint(ctx) {
       return json({ success: false, error: 'phone is required' }, 400, corsFor(request));
     }
     try {
-      const result = await analyzePhone(body.phone);
+      const result = await runPhoneOsint(body.phone);
       return json({ success: true, data: result }, 200, corsFor(request));
     } catch (err) {
       return json({ success: false, error: err.message }, 500, corsFor(request));

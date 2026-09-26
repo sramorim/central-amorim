@@ -20,6 +20,7 @@ const TOKEN_BYTES = 32;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 import { installShandonOsint } from './shandon-osint.js';
+import { installSearchOsint } from './search-osint.js';
 
 /* ------------------------------------------------------------------ */
 /* Plans / Entitlements model                                          */
@@ -471,6 +472,9 @@ export function createApp({ db, env = {} }) {
 
   /* -------- ferramentas do Shandon no Workers (sem dormir) -------- */
   installShandonOsint({ router, json, readBody, rateLimit, cfg, corsFor: (request) => corsFor(request, cfg) });
+
+  /* -------- buscador de pessoa ("Localizar Pessoa") -------- */
+  installSearchOsint({ router, json, readBody, rateLimit, cfg, corsFor: (request) => corsFor(request, cfg) });
 
   /* -------- rate limit -------- */
   async function rateLimit(key, max = 6, winMs = 60_000) {
