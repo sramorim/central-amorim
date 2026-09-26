@@ -19,6 +19,7 @@ export default defineConfig({
         'recuperar-senha': resolve(__dirname, 'recuperar-senha.html'),
         planos: resolve(__dirname, 'planos.html'),
         'minha-conta': resolve(__dirname, 'minha-conta.html'),
+        ferramentas: resolve(__dirname, 'ferramentas.html'),
         follow: resolve(__dirname, 'follow.html'),
         radar: resolve(__dirname, 'radar.html'),
         sonda: resolve(__dirname, 'sonda.html'),

@@ -626,6 +626,12 @@ button { cursor: pointer; font: inherit; }
   padding: 1.625rem;
 }
 
+.tools-see-all {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 26px;
+}
+
 .project-card--featured {
   border-color: var(--accent-line);
   background: linear-gradient(180deg, var(--accent-soft) 0%, var(--bg-card) 55%);

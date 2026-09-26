@@ -63,6 +63,25 @@ test('formulário de registro chama o endpoint de registro', () => {
   assert.match(html, /\/api\/auth\/register/);
 });
 
+test('ferramentas.html existe com busca, filtro e grid', () => {
+  const html = read('ferramentas.html');
+  assert.ok(html.length > 500, 'página deve ter conteúdo real');
+  assert.match(html, /<title>Todas as Ferramentas/, 'deve ter title do catálogo');
+  assert.match(html, /tools-search/, 'deve ter campo de busca');
+  assert.match(html, /tools-grid/, 'deve ter grid de ferramentas');
+  assert.match(html, /ferramentas\.js/, 'deve carregar o script do catálogo');
+});
+
+test('home linka a página todas as ferramentas', () => {
+  const html = read('index.html');
+  assert.match(html, /\/ferramentas/, 'home deve ter link para /ferramentas');
+});
+
+test('vite.config registra a rota ferramentas', () => {
+  const cfg = read('vite.config.js');
+  assert.match(cfg, /ferramentas: resolve\(__dirname, 'ferramentas\.html'\)/);
+});
+
 test('entrar.html chama login e probe de Google', () => {
   const html = read('entrar.html');
   assert.match(html, /\/api\/auth\/login/);

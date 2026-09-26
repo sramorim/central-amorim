@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Todas as Ferramentas — Central Amorim</title>
+  <meta name="description" content="Catálogo completo de ferramentas e projetos de Sr. Amorim: busque e filtre por categoria — redes sociais, investigação, utilidades e mais." />
+  <meta property="og:title" content="Todas as Ferramentas — Central Amorim" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="pt_BR" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/css/style.css" />
+  <style>
+    .tools-toolbar { max-width: 720px; margin: 0 auto 26px; }
+    .tools-search {
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--bg-card);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .tools-search::placeholder { color: var(--muted); }
+    .tools-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+    .fchip {
+      border: 1px solid var(--line);
+      background: var(--bg-card);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .15s;
+    }
+    .fchip:hover { border-color: var(--accent-line); color: var(--text); }
+    .fchip--active {
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-strong) 100%);
+      border-color: transparent;
+      color: #fff;
+    }
+    .tools-count { text-align: center; font-size: 12px; color: var(--muted); margin: 18px 0 22px; }
+    .tools-empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: var(--muted);
+      background: var(--bg-card);
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      padding: 34px 18px;
+    }
+    .tools-back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; text-decoration: none; margin-bottom: 18px; }
+    .tools-back:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <header class="header" role="banner">
+    <div class="container header-inner">
+      <a href="/" class="logo" aria-label="Central Amorim — Página inicial">
+        <span class="logo-mark" aria-hidden="true">SA</span>
+        <span>SR. AMORIM</span>
+      </a>
+      <div class="header-actions">
+        <nav class="nav-desktop" role="navigation" aria-label="Menu principal">
+          <a href="/">Início</a>
+          <a href="/ferramentas" aria-current="page">Ferramentas</a>
+          <a href="/planos">Planos</a>
+        </nav>
+        <div class="auth-slot" data-auth></div>
+        <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-nav">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+    <nav class="nav-mobile" id="mobile-nav" role="navigation" aria-label="Menu mobile">
+      <a href="/">Início</a>
+      <a href="/ferramentas">Ferramentas</a>
+      <a href="/planos">Planos</a>
+      <span data-auth-mobile></span>
+    </nav>
+  </header>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <a class="tools-back" href="/#projetos">← Voltar para a Central</a>
+        <span class="section-label">Catálogo</span>
+        <h1 class="section-title">Todas as Ferramentas</h1>
+        <p class="section-subtitle" style="text-align:center">
+          Busque e filtre por categoria. Novas ferramentas são adicionadas com frequência.
+        </p>
+
+        <div class="tools-toolbar">
+          <input
+            type="search"
+            id="tools-search"
+            class="tools-search"
+            placeholder="Buscar por nome, descrição ou categoria…"
+            aria-label="Buscar ferramentas"
+          />
+          <div class="filter-chips" id="category-chips"></div>
+        </div>
+
+        <div class="tools-count" id="tools-count"></div>
+
+        <div class="projects-grid" id="tools-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">CENTRAL AMORIM</div>
+          <p class="footer-tagline">Portal da marca Sr. Amorim.</p>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Conta</span>
+          <a href="/entrar">Entrar</a>
+          <a href="/criar-conta">Criar conta</a>
+          <a href="/minha-conta">Minha conta</a>
+          <a href="/planos">Planos</a>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Navegação</span>
+          <a href="/">Início</a>
+          <a href="/ferramentas">Ferramentas</a>
+          <a href="#contato">Contato</a>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Projetos</span>
+          <a href="https://osint.senhoramorim.com.br" target="_blank" rel="noopener noreferrer">Amorim OSINT</a>
+          <a href="https://elite.senhoramorim.com.br" target="_blank" rel="noopener noreferrer">Shandon Elite</a>
+        </div>
+        <div class="footer-links">
+          <span class="footer-col-title">Legal</span>
+          <a href="/creditos">Créditos</a>
+          <a href="/legal">Legal</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Sr. Amorim — Daniel Amorim</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/js/main.js"></script>
+  <script type="module" src="/src/js/ferramentas.js"></script>
+</body>
+</html>
