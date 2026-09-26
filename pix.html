@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Central Amorim — Assinar PRO</title>
-  <meta name="description" content="Assine o Plano PRO da Central Amorim por R$ 79 (pagamento único, acesso vitalício). Pagamento via Pix." />
+  <meta name="description" content="Assine o Plano PRO da Central Amorim por R$ 9,99 (pagamento único, acesso vitalício). Pagamento via Pix." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -77,7 +77,7 @@
 
     <div id="cfg-loaded" class="hidden">
       <div class="card" id="step-form">
-        <div class="price"><span class="val" id="p-price">R$ 79</span><span class="note">pagamento único · acesso vitalício</span></div>
+        <div class="price"><span class="val" id="p-price">R$ 9,99</span><span class="note">pagamento único · acesso vitalício</span></div>
         <ul class="feat" id="p-features"></ul>
         <form id="checkout-form" novalidate>
           <label>Nome completo *</label>
@@ -139,7 +139,7 @@
         }
         $id('cfg-loaded').hidden = false;
         if (cfg.pro) {
-          $id('p-price').textContent = 'R$ ' + (cfg.pro.price || 79);
+          $id('p-price').textContent = 'R$ ' + (cfg.pro.price || 9.99).toFixed(2).replace('.', ',');
           $id('p-features').innerHTML = (cfg.pro.features || []).map(function (f) {
             return '<li><span class="tick">✔</span>' + f + '</li>';
           }).join('');

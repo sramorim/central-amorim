@@ -257,7 +257,7 @@ test('catálogo de planos expõe FREE/PRO/ADMIN', async () => {
   assert.deepEqual(codes, ['FREE', 'PRO', 'ADMIN']);
   const pro = data.plans.find((p) => p.code === 'PRO');
   assert.equal(pro.available, false, 'PRO sem checkout nesta etapa');
-  assert.equal(pro.billing.unique, 79, 'PRO pagamento único definido');
+  assert.equal(pro.billing.unique, 9.99, 'PRO pagamento único definido');
   assert.equal(pro.billing.monthly, 9.9, 'PRO mensal opcional definido');
   assert.ok(Array.isArray(pro.features) && pro.features.length > 0, 'PRO expõe lista de recursos');
   const free = data.plans.find((p) => p.code === 'FREE');

@@ -58,7 +58,7 @@ async function register(nameApp, { name, email, password }) {
 
 before(() => {
   freshApp('off'); // sem PIX configurado
-  freshApp('pay', { PIX_KEY: 'central-amorim@exemplo.com', PIX_NAME: 'SR. AMORIM', PIX_CITY: 'BRASIL', PIX_AMOUNT_BRL: '79' });
+  freshApp('pay', { PIX_KEY: 'central-amorim@exemplo.com', PIX_NAME: 'SR. AMORIM', PIX_CITY: 'BRASIL', PIX_AMOUNT_BRL: '9.99' });
   freshApp('admin', { PIX_KEY: 'central-amorim@exemplo.com', ADMIN_EMAILS: 'dono@central.com' });
 });
 
@@ -78,8 +78,8 @@ test('config pública entrega copy-paste Pix válido', async () => {
   assert.equal(a.data.enabled, true);
   assert.ok(a.data.pix.copyPaste.startsWith('000201'), 'payload deve começar com 000201');
   assert.match(a.data.pix.copyPaste, /6304[0-9A-F]{4}$/, 'deve terminar em 6304 + CRC');
-  assert.equal(a.data.pix.amountBRL, 79);
-  assert.equal(a.data.pro.price, 79);
+  assert.equal(a.data.pix.amountBRL, 9.99);
+  assert.equal(a.data.pro.price, 9.99);
 });
 
 test('criação de pedido valida entrada e gera código', async () => {
@@ -88,7 +88,7 @@ test('criação de pedido valida entrada e gera código', async () => {
   assert.equal(ok.data.ok, true);
   assert.match(ok.data.order.code, /^COD-[A-Z2-9]{6}$/);
   assert.equal(ok.data.order.status, 'pending');
-  assert.equal(ok.data.order.amount, 7900);
+  assert.equal(ok.data.order.amount, 999);
   assert.ok(ok.data.pix.copyPaste.startsWith('000201'));
 
   const badEmail = await call('pay', '/api/orders', { method: 'POST', body: { name: 'Ana', email: 'nao-e-email' } });

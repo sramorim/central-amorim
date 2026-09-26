@@ -56,7 +56,7 @@ export const PLANS = {
     order: 2,
     billing: {
       currency: 'BRL',
-      unique: 79,
+      unique: 9.99,
       uniqueNote: 'pagamento único · acesso vitalício à versão atual',
       monthly: 9.9,
     },
@@ -64,7 +64,7 @@ export const PLANS = {
       'Árvore AMORIM OSINT completa: 33 categorias',
       '1.168 ferramentas de investigação',
       'Exportação de dados liberada',
-      'Pagamento único de R$ 79 — sem mensalidade',
+      'Pagamento único de R$ 9,99 — sem mensalidade',
       'Upgrades futuros (v2, Shandon Elite) com desconto',
     ],
     limits: {
@@ -356,7 +356,7 @@ function pixCrc16(payload) {
 
 function pixPayloadFor(cfg) {
   const merchantAccount = pixField('00', 'br.gov.bcb.pix') + pixField('01', cfg.PIX_KEY);
-  const amount = (Number(cfg.PIX_AMOUNT_BRL) || 79).toFixed(2);
+  const amount = (Number(cfg.PIX_AMOUNT_BRL) || 9.99).toFixed(2);
   const name = String(cfg.PIX_NAME || 'SR. AMORIM').slice(0, 25);
   const city = String(cfg.PIX_CITY || 'BRASIL').slice(0, 15);
   const payload =
@@ -446,7 +446,7 @@ export function createApp({ db, env = {} }) {
     PIX_KEY: env.PIX_KEY || '',
     PIX_NAME: env.PIX_NAME || 'SR. AMORIM',
     PIX_CITY: env.PIX_CITY || 'BRASIL',
-    PIX_AMOUNT_BRL: env.PIX_AMOUNT_BRL || '79',
+    PIX_AMOUNT_BRL: env.PIX_AMOUNT_BRL || '9.99',
     WA_NUMBER: env.WA_NUMBER || '',
   };
   const router = new Map();
@@ -660,7 +660,7 @@ export function createApp({ db, env = {} }) {
       ok: true,
       enabled,
       pix: enabled
-        ? { copyPaste: pixPayloadFor(cfg), amountBRL: Number(cfg.PIX_AMOUNT_BRL) || 79, name: cfg.PIX_NAME || 'SR. AMORIM' }
+        ? { copyPaste: pixPayloadFor(cfg), amountBRL: Number(cfg.PIX_AMOUNT_BRL) || 9.99, name: cfg.PIX_NAME || 'SR. AMORIM' }
         : null,
       whatsapp: cfg.WA_NUMBER ? { number: cfg.WA_NUMBER } : null,
       pro: {
@@ -692,13 +692,13 @@ export function createApp({ db, env = {} }) {
     const id = crypto.randomUUID();
     const code = makeOrderCode();
     const now = Date.now();
-    const amount = Math.round((Number(cfg.PIX_AMOUNT_BRL) || 79) * 100);
+    const amount = Math.round((Number(cfg.PIX_AMOUNT_BRL) || 9.99) * 100);
     await db.prepare('INSERT INTO orders (id, code, name, email, cpf, plan, amount, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(id, code, name, email, cpf || null, 'pro', amount, 'pending', now).run();
 
     return json({
       ok: true,
       order: { code, status: 'pending', createdAt: now, amount },
-      pix: { copyPaste: pixPayloadFor(cfg), amountBRL: Number(cfg.PIX_AMOUNT_BRL) || 79 },
+      pix: { copyPaste: pixPayloadFor(cfg), amountBRL: Number(cfg.PIX_AMOUNT_BRL) || 9.99 },
       whatsapp: cfg.WA_NUMBER ? { number: cfg.WA_NUMBER } : null,
       note: 'Após pagar, envie o comprovante no WhatsApp informando o código do pedido para ativar o PRO.',
     }, 201);
