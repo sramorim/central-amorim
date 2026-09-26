@@ -30,8 +30,9 @@ ADMIN_EMAILS = "sr.centralamorim@gmail.com"
 # Origem do app SHANDON ELITE (remove o bloqueio de Origin e habilita CORS).
 SHANDON_ORIGIN = "https://elite.senhoramorim.com.br"
 # Limite diário de consultas Apify por instância do Worker (protege o crédito
-# grátis do plano Apify Free — ~US$5/mês, sem cartão).
-APIFY_DAILY_LIMIT = "100"
+# grátis do plano Apify Free — ~US$5/mês, sem cartão). Vale para WhatsApp
+# Lookup E Instagram Profundo (compartilham o mesmo orçamento).
+APIFY_DAILY_LIMIT = "40"
 
 # SEKRETS — NUNCA declarar como var aqui (o deploy sobrescreveria o secret do
 # Dashboard). Colar no Cloudflare: worker central-amorim > Settings > Variables

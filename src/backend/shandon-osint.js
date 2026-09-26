@@ -9,11 +9,17 @@
 
 const ABORT_MS = 20000;
 const APIFY_ACTOR = 'eduair94~whatsapp-data-lookup';
+const APIFY_INSTAGRAM_ACTOR = 'apify~instagram-scraper';
 const METADATA = {
   'api/whatsapp-lookup': {
     service: 'whatsapp-lookup',
     description: 'WhatsApp OSINT: foto de perfil, status, negócio, Telegram, nome real (leak do Facebook) e vazamentos',
     body: { phone: 'string' },
+  },
+  'api/instagram': {
+    service: 'instagram-lookup',
+    description: 'Instagram Profundo: perfil completo (nome real, bio, seguidores, posts), verificado/privado/negócio, link externo e últimos posts',
+    body: { username: 'string' },
   },
   'api/phone-osint': {
     service: 'phone-osint',
@@ -305,7 +311,7 @@ export function installShandonOsint(ctx) {
        foto real, nome do leak do Facebook, Telegram, vazamentos de números. */
     if (env.APIFY_API_TOKEN) {
       const budget = dailyBudget('apify');
-      const limit = Number(env.APIFY_DAILY_LIMIT) || 100;
+      const limit = Number(env.APIFY_DAILY_LIMIT) || 40;
       if (budget.count < limit) {
         budget.count++;
         try {
@@ -372,6 +378,112 @@ export function installShandonOsint(ctx) {
     try {
       const result = await lookupWhatsApp(body.phone, cfg);
       return json({ success: true, data: result }, 200, corsFor(request));
+    } catch (err) {
+      return json({ success: false, error: err.message }, 500, corsFor(request));
+    }
+  });
+
+  /* ------------------------- Instagram Profundo ------------------------- */
+  function usernameFromInput(raw) {
+    let u = String(raw || '').trim().replace(/^@+/, '');
+    const parts = u.replace(/^https?:\/\//i, '').split('/');
+    const hostIdx = parts.findIndex((p) => p.toLowerCase().includes('instagram.com'));
+    if (hostIdx >= 0) u = parts[hostIdx + 1] || '';
+    return u.replace(/[^a-zA-Z0-9._]/g, '');
+  }
+
+  /* Perfil completo de um username via apify/instagram-scraper (modo "details").
+     Cada execução ≈ US$0,003 no plano Free (1 resultado); posts vêm embutidos. */
+  async function apifyInstagram(username, env) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    try {
+      const res = await fetch(
+        `https://api.apify.com/v2/acts/${APIFY_INSTAGRAM_ACTOR}/run-sync-get-dataset-items?token=${encodeURIComponent(env.APIFY_API_TOKEN)}`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            directUrls: [`https://www.instagram.com/${username}/`],
+            resultsType: 'details',
+            resultsLimit: 1,
+          }),
+          signal: controller.signal,
+        }
+      );
+      if (res.status === 401 || res.status === 403 || res.status === 429) {
+        throw new Error(`Apify respondeu ${res.status} (verifique APIFY_API_TOKEN)`);
+      }
+      if (!res.ok) throw new Error(`Apify respondeu ${res.status}`);
+      const text = (await res.text()).trim();
+      if (!text) return null;
+      let items = JSON.parse(text);
+      if (!Array.isArray(items)) items = items && Array.isArray(items.items) ? items.items : [];
+      const prof = items.find((i) => i && typeof i === 'object') || null;
+      if (!prof) return null;
+      if (prof.error) throw new Error(String(prof.error));
+
+      const posts = (Array.isArray(prof.latestPosts) ? prof.latestPosts : []).map((p) => ({
+        url: p.url || null,
+        type: p.type || null,
+        caption: p.caption || null,
+        likesCount: p.likesCount ?? null,
+        commentsCount: p.commentsCount ?? null,
+        videoViewCount: p.videoViewCount ?? null,
+        timestamp: p.timestamp || null,
+        image: p.displayUrl || null,
+      }));
+
+      return {
+        username: prof.username || username,
+        fullName: prof.fullName || null,
+        biography: prof.biography || null,
+        verified: Boolean(prof.verified),
+        isPrivate: Boolean(prof.private),
+        isBusiness: Boolean(prof.isBusinessAccount),
+        businessCategory: prof.businessCategoryName || null,
+        followersCount: prof.followersCount ?? null,
+        followsCount: prof.followsCount ?? null,
+        postsCount: prof.postsCount ?? null,
+        highlightsCount: prof.highlightReelCount ?? null,
+        externalUrl: prof.externalUrl || null,
+        profilePicUrl: prof.profilePicUrl || prof.profilePicUrlHD || null,
+        profilePicUrlHD: prof.profilePicUrlHD || null,
+        fbid: prof.fbid || null,
+        profileUrl: prof.url || `https://www.instagram.com/${username}`,
+        latestPosts: posts,
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  router.set('POST /api/instagram', async (request, context) => {
+    const rl = await rateLimit(`instagram:${context.ip}`, 5);
+    if (!rl.ok) return json({ success: false, error: 'Muitas consultas. Aguarde um instante.' }, 429, corsFor(request));
+    const body = await readBody(request);
+    if (!body || typeof body.username !== 'string' || !body.username.trim()) {
+      return json({ success: false, error: 'username is required' }, 400, corsFor(request));
+    }
+    const username = usernameFromInput(body.username);
+    if (!username) {
+      return json({ success: false, error: 'username inválido' }, 400, corsFor(request));
+    }
+    if (!cfg.APIFY_API_TOKEN) {
+      return json({ success: true, data: { username, configured: false, errors: ['Chave Apify não configurada (APIFY_API_TOKEN).'] } }, 200, corsFor(request));
+    }
+    const budget = dailyBudget('apify');
+    const limit = Number(cfg.APIFY_DAILY_LIMIT) || 40;
+    if (budget.count >= limit) {
+      return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', errors: ['Limite diário de consultas Apify atingido (APIFY_DAILY_LIMIT).'] } }, 200, corsFor(request));
+    }
+    budget.count++;
+    try {
+      const prof = await apifyInstagram(username, cfg);
+      if (!prof) {
+        return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', errors: ['Perfil não encontrado ou privado.'] } }, 200, corsFor(request));
+      }
+      return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', profile: prof } }, 200, corsFor(request));
     } catch (err) {
       return json({ success: false, error: err.message }, 500, corsFor(request));
     }

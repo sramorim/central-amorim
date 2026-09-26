@@ -227,6 +227,99 @@ test('POST /api/whatsapp-lookup Apify: número fora do WhatsApp responde onWhats
   }
 });
 
+test('GET /api/instagram descreve o serviço', async () => {
+  const { status, data } = await call('/api/instagram');
+  assert.equal(status, 200);
+  assert.equal(data.success, true);
+  assert.equal(data.data.service, 'instagram-lookup');
+});
+
+test('POST /api/instagram valida username e responde configured:false sem chave', async () => {
+  const missing = await call('/api/instagram', { method: 'POST', body: {} });
+  assert.equal(missing.status, 400);
+
+  const noKey = await call('/api/instagram', { method: 'POST', body: { username: 'dono@teste ' } });
+  assert.equal(noKey.status, 200);
+  assert.equal(noKey.data.data.configured, false);
+  assert.ok(noKey.data.data.errors.some((e) => e.includes('APIFY_API_TOKEN')));
+});
+
+test('POST /api/instagram com APIFY_API_TOKEN entrega perfil completo (modo details)', async () => {
+  const appIg = createApp({
+    db: createLocalDb(),
+    env: makeEnv({ APIFY_API_TOKEN: 'apify_api_test', APIFY_DAILY_LIMIT: '10' }),
+  });
+  const offline = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('api.apify.com')) {
+      return new Response(
+        JSON.stringify([
+          {
+            inputUrl: 'https://www.instagram.com/torvalds/',
+            id: '242598499',
+            username: 'torvalds',
+            url: 'https://www.instagram.com/torvalds',
+            fullName: 'Linus Torvalds',
+            biography: 'Linux founder.',
+            externalUrl: 'https://torvalds-family.blogspot.com',
+            followersCount: 350000,
+            followsCount: 88,
+            highlightReelCount: 2,
+            isBusinessAccount: false,
+            businessCategoryName: null,
+            private: false,
+            verified: true,
+            profilePicUrl: 'https://scontent.example/torvalds.jpg',
+            profilePicUrlHD: 'https://scontent.example/torvalds_hd.jpg',
+            fbid: '17841401154973790',
+            postsCount: 300,
+            latestPosts: [
+              {
+                url: 'https://www.instagram.com/p/ABC123/',
+                type: 'Image',
+                caption: 'Testing the new kernel',
+                likesCount: 1000,
+                commentsCount: 50,
+                timestamp: '2026-01-01T00:00:00.000Z',
+                displayUrl: 'https://scontent.example/post1.jpg',
+              },
+            ],
+          },
+        ]),
+        { status: 200 }
+      );
+    }
+    throw new Error('rede bloqueada no teste');
+  };
+
+  try {
+    const res = await appIg.fetch(
+      new Request('https://central.test/api/instagram', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ username: 'https://www.instagram.com/torvalds/' }),
+      })
+    );
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.success, true);
+    const d = body.data;
+    assert.equal(d.configured, true);
+    assert.equal(d.provider, 'apify-instagram');
+    assert.equal(d.profile.fullName, 'Linus Torvalds');
+    assert.equal(d.profile.username, 'torvalds');
+    assert.equal(d.profile.followersCount, 350000);
+    assert.equal(d.profile.verified, true);
+    assert.equal(d.profile.isPrivate, false);
+    assert.equal(d.profile.externalUrl, 'https://torvalds-family.blogspot.com');
+    assert.equal(d.profile.latestPosts.length, 1);
+    assert.equal(d.profile.latestPosts[0].caption, 'Testing the new kernel');
+  } finally {
+    globalThis.fetch = offline;
+  }
+});
+
 test('Origem do Shandon liberada (CORS + osint), origens estranhas bloqueadas', async () => {
   const elite = await call('/api/phone-osint', {
     method: 'POST',

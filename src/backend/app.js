@@ -473,7 +473,7 @@ export function createApp({ db, env = {} }) {
     RAPIDAPI_WHATSAPP_KEY: env.RAPIDAPI_WHATSAPP_KEY || '',
     RAPIDAPI_WHATSAPP_HOST: env.RAPIDAPI_WHATSAPP_HOST || '',
     APIFY_API_TOKEN: env.APIFY_API_TOKEN || '',
-    APIFY_DAILY_LIMIT: Number(env.APIFY_DAILY_LIMIT) || 100,
+    APIFY_DAILY_LIMIT: Number(env.APIFY_DAILY_LIMIT) || 40,
   };
   const router = new Map();
 
