@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSocialLinks();
   initMobileNav();
   initScrollReveal();
+  initHeroCounters();
   initSmoothScroll();
   initHeaderScroll();
   renderAuthSlot();
@@ -117,6 +118,39 @@ function initScrollReveal() {
   );
 
   elements.forEach((el) => observer.observe(el));
+}
+
+/* ---------- Contadores do hero ---------- */
+function initHeroCounters() {
+  const counters = document.querySelectorAll('[data-count]');
+  if (!counters.length) return;
+
+  const animate = (el) => {
+    const target = Number(el.dataset.count || 0);
+    const duration = 800;
+    const start = performance.now();
+    const tick = (now) => {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * eased).toLocaleString('pt-BR');
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          animate(entry.target);
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.5 }
+  );
+
+  counters.forEach((el) => observer.observe(el));
 }
 
 /* ---------- Smooth Scroll ---------- */
