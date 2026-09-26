@@ -109,14 +109,15 @@ test('POST /api/search/email descobre Gravatar e links de busca', async () => {
   assert.ok(results.some((r) => r.platform === 'Google'));
 });
 
-test('POST /api/search/phone delega para o Phone OSINT', async () => {
+test('POST /api/search/phone delega para o Phone OSINT (shape de card)', async () => {
   const ok = await call('/api/search/phone', { phone: '554797876098' });
   assert.equal(ok.status, 200);
   assert.equal(ok.data.data.mode, 'phone');
   const r = ok.data.data.results[0];
-  assert.equal(typeof r.valid, 'boolean');
-  assert.equal(typeof r.whatsapp, 'boolean');
-  assert.ok(Array.isArray(r.socialMedia));
+  assert.equal(r.platform, 'Telefone');
+  assert.equal(typeof r.exists, 'boolean');
+  assert.equal(typeof r.extra.whatsapp, 'boolean');
+  assert.ok(Array.isArray(ok.data.data.results));
 });
 
 test('Buscador respeita CORS e rate limit', async () => {

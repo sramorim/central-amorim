@@ -433,8 +433,23 @@ export function installSearchOsint(ctx) {
     if (!rl.ok) return json({ success: false, error: 'Muitas buscas. Aguarde um instante.' }, 429, corsFor(request));
     try {
       if (mode === 'phone') {
-        const data = await runPhoneOsint(value);
-        return json({ success: true, data: { mode: 'phone', results: [data] } }, 200, corsFor(request));
+        const d = await runPhoneOsint(value);
+        const card = {
+          id: `phone:${d.phone}`,
+          platform: 'Telefone',
+          username: d.phone,
+          displayName: d.country || 'Telefone',
+          score: d.valid ? 80 : 30,
+          status: d.valid ? (d.whatsapp ? 'found' : 'possible') : 'not_found',
+          httpStatus: null,
+          url: '',
+          exists: d.valid,
+          avatar: '',
+          source: 'phone-osint',
+          timestamp: Date.now(),
+          extra: { carrier: d.carrier, country: d.country, whatsapp: d.whatsapp, lineType: d.lineType },
+        };
+        return json({ success: true, data: { mode: 'phone', results: [card] } }, 200, corsFor(request));
       }
       if (mode === 'username') {
         const data = await enumUsername(value);
