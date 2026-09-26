@@ -21,7 +21,9 @@ PIX_AMOUNT_BRL = "79"
 # Chave Pix (EVP) da Central — pública, usada no QR/copia-e-cola do checkout.
 PIX_KEY = "ee2ee68d-3e68-4458-a32e-d34af93772ef"
 # WhatsApp Business que recebe comprovantes (preenchido quando o chip chegar).
-WA_NUMBER = ""
+# WhatsApp Business que recebe comprovantes. # TEMPORÁRIO: número pessoal do dono;
+# trocar pelo chip secundário quando chegar.
+WA_NUMBER = "554797876098"
 # E-mail(s) admin: o mesmo da conta que o dono usa para entrar no painel /admin.
 # Ex.: ADMIN_EMAILS = "contato.centralamorim@gmail.com"
 ADMIN_EMAILS = "sr.centralamorim@gmail.com"
