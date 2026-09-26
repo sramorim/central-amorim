@@ -52,15 +52,20 @@ export const PLANS = {
     code: 'PRO',
     label: 'Plano PRO',
     descriptor:
-      'Acesso completo ao AMORIM OSINT: toda a árvore de ferramentas, exportação liberada e novos recursos em primeiro lugar.',
+      'Acesso completo ao AMORIM OSINT: toda a árvore de ferramentas, exportação liberada e novos recursos em primeiro lugar. Pagamento único, acesso vitalício à versão atual.',
     order: 2,
-    billing: { currency: 'BRL', monthly: 29.9, annual: 299, annualNote: 'equivalente a 2 meses grátis' },
+    billing: {
+      currency: 'BRL',
+      unique: 79,
+      uniqueNote: 'pagamento único · acesso vitalício à versão atual',
+      monthly: 9.9,
+    },
     features: [
       'Árvore AMORIM OSINT completa: 33 categorias',
       '1.168 ferramentas de investigação',
       'Exportação de dados liberada',
-      'Acesso antecipado a novos recursos',
-      'Assinatura mensal ou anual',
+      'Pagamento único de R$ 79 — sem mensalidade',
+      'Upgrades futuros (v2, Shandon Elite) com desconto',
     ],
     limits: {
       'amorim-osint': { categories: 33, tools: 1168, export: true, demo: false, premium: true },

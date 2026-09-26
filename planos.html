@@ -52,11 +52,9 @@
 
     <section class="page-content">
       <div class="container">
-        <div class="billing-toggle" id="billing-toggle" role="group" aria-label="Frequência de cobrança">
-          <button type="button" class="billing-opt is-active" data-billing="monthly">Mensal</button>
-          <button type="button" class="billing-opt" data-billing="annual">
-            Anual<span class="billing-save">2 meses grátis</span>
-          </button>
+        <div class="billing-toggle" id="billing-toggle" role="group" aria-label="Forma de pagamento">
+          <button type="button" class="billing-opt is-active" data-billing="unique">Pagamento único</button>
+          <button type="button" class="billing-opt" data-billing="monthly">Mensal</button>
         </div>
 
         <div class="plan-grid" id="plan-grid">
@@ -122,19 +120,20 @@
     const opts = toggle ? Array.from(toggle.querySelectorAll('.billing-opt')) : [];
 
     const TONES = { FREE: '', PRO: 'plan-card--pro', ADMIN: 'plan-card--admin' };
-    const PERIOD = { monthly: 'por mês', annual: 'por ano' };
+    const PERIOD = { unique: '', monthly: 'por mês' };
 
     const fmtBRL = (v) => `R$ ${Number(v).toFixed(2).replace('.', ',')}`;
     const priceHtml = (plan, billing) => {
-      if (!plan.billing || !plan.billing.monthly) {
+      if (!plan.billing || (!plan.billing.unique && !plan.billing.monthly)) {
         return `<div class="plan-price"><span class="plan-price-value plan-price-value--free">Grátis</span><span class="plan-price-period">para sempre</span></div>`;
       }
-      const value = billing === 'annual' ? plan.billing.annual : plan.billing.monthly;
-      const save = billing === 'annual' && plan.billing.annualNote ? `<span class="plan-price-save">${plan.billing.annualNote}</span>` : '';
+      const value = billing === 'monthly' ? plan.billing.monthly : plan.billing.unique;
+      const note = billing === 'monthly' ? plan.billing.monthlyNote : plan.billing.uniqueNote;
+      const save = billing === 'unique' && plan.billing.uniqueNote ? `<span class="plan-price-save">${plan.billing.uniqueNote}</span>` : '';
       return `<div class="plan-price"><span class="plan-price-value">${fmtBRL(value)}</span><span class="plan-price-period">/ ${PERIOD[billing]}</span>${save}</div>`;
     };
 
-    let currentBilling = 'monthly';
+    let currentBilling = 'unique';
 
     function render(plans, myPlan) {
       grid.innerHTML = plans
