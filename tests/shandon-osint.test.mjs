@@ -128,6 +128,105 @@ test('POST /api/whatsapp-lookup valida número', async () => {
   assert.equal(short.data.success, false);
 });
 
+test('POST /api/whatsapp-lookup com APIFY_API_TOKEN usa o provedor Apify (foto, nome do leak, Telegram)', async () => {
+  const appApify = createApp({
+    db: createLocalDb(),
+    env: makeEnv({ APIFY_API_TOKEN: 'apify_api_test', APIFY_DAILY_LIMIT: '10' }),
+  });
+  const offline = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('api.apify.com')) {
+      return new Response(
+        JSON.stringify([
+          {
+            number: '554797876098',
+            exists: true,
+            isBusiness: false,
+            urlImage: 'https://whatsapp-db.example/554797876098.jpg',
+            about: 'Disponível',
+            telegram: { username: 'dono', first_name: 'Dono', last_name: 'Teste', premium: true },
+            fbLeak: {
+              data: {
+                firstName: 'Dono',
+                lastName: 'Teste',
+                fbId: '123',
+                gender: 'male',
+                regionCode: 'BR',
+                other: { location: 'Itajaí' },
+              },
+            },
+            facebookProfile: 'https://facebook.com/123',
+            facebookProfilePicUrl: 'https://wa-fb.example/123.jpg',
+            leakedData: { results: 1, entries: [{ entry: { name: 'Dono Teste', database_name: 'Facebook' } }] },
+            source: 'fresh',
+            fetchedAt: '2026-09-26T15:00:00.000Z',
+          },
+        ]),
+        { status: 200 }
+      );
+    }
+    throw new Error('rede bloqueada no teste');
+  };
+
+  try {
+    const res = await appApify.fetch(
+      new Request('https://central.test/api/whatsapp-lookup', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: '554797876098' }),
+      })
+    );
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.success, true);
+    const d = body.data;
+    assert.equal(d.provider, 'apify');
+    assert.equal(d.onWhatsApp, true);
+    assert.equal(d.name, 'Dono Teste');
+    assert.equal(d.photo.hasPhoto, true);
+    assert.equal(d.photo.image, 'https://whatsapp-db.example/554797876098.jpg');
+    assert.equal(d.photo.facebookPhoto, 'https://wa-fb.example/123.jpg');
+    assert.equal(d.telegram.username, 'dono');
+    assert.equal(d.hasTelegram, true);
+    assert.equal(d.source, 'fresh');
+    assert.equal(d.facebook.details.location, 'Itajaí');
+    assert.ok(Array.isArray(d.errors));
+  } finally {
+    globalThis.fetch = offline;
+  }
+});
+
+test('POST /api/whatsapp-lookup Apify: número fora do WhatsApp responde onWhatsApp:false', async () => {
+  const appApify = createApp({
+    db: createLocalDb(),
+    env: makeEnv({ APIFY_API_TOKEN: 'apify_api_test' }),
+  });
+  const offline = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('api.apify.com')) {
+      return new Response(JSON.stringify([{ number: '5599999999999', exists: false, source: 'not-found' }]), { status: 200 });
+    }
+    throw new Error('rede bloqueada no teste');
+  };
+  try {
+    const res = await appApify.fetch(
+      new Request('https://central.test/api/whatsapp-lookup', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: '5599999999999' }),
+      })
+    );
+    const body = await res.json();
+    assert.equal(body.data.provider, 'apify');
+    assert.equal(body.data.onWhatsApp, false);
+    assert.equal(body.data.source, 'not-found');
+  } finally {
+    globalThis.fetch = offline;
+  }
+});
+
 test('Origem do Shandon liberada (CORS + osint), origens estranhas bloqueadas', async () => {
   const elite = await call('/api/phone-osint', {
     method: 'POST',

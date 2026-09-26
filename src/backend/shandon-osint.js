@@ -8,10 +8,11 @@
  */
 
 const ABORT_MS = 20000;
+const APIFY_ACTOR = 'eduair94~whatsapp-data-lookup';
 const METADATA = {
   'api/whatsapp-lookup': {
     service: 'whatsapp-lookup',
-    description: 'WhatsApp OSINT: foto de perfil, status, negócio, dispositivos, privacidade e dados completos',
+    description: 'WhatsApp OSINT: foto de perfil, status, negócio, Telegram, nome real (leak do Facebook) e vazamentos',
     body: { phone: 'string' },
   },
   'api/phone-osint': {
@@ -60,6 +61,18 @@ async function fetchTimeout(url, timeoutMs = 10000) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/* Contador diário em memória (por instância do Worker) que protege o crédito
+   grátis do plano Apify Free (~US$5/mês, sem cartão). Zera a cada dia UTC. */
+const dailyCounters = {};
+function dailyBudget(name) {
+  const today = new Date().toISOString().slice(0, 10);
+  const entry = dailyCounters[name];
+  if (!entry || entry.date !== today) {
+    dailyCounters[name] = { date: today, count: 0 };
+  }
+  return dailyCounters[name];
 }
 
 async function checkNumverify(phone) {
@@ -201,6 +214,82 @@ export function installShandonOsint(ctx) {
     return { hasPhoto: false, image: null };
   }
 
+  async function apifyLookup(phone, env) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ABORT_MS);
+    try {
+      const res = await fetch(
+        `https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items?token=${encodeURIComponent(env.APIFY_API_TOKEN)}`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            numbers: [`+${phone}`],
+            preferCache: true,
+            onlyCache: false,
+            includeProfilePic: true,
+            includeAbout: true,
+            includeTelegram: true,
+            includeLeaks: true,
+            fbProfilePic: true,
+            includeLookup: true,
+            includeCarrier: true,
+            concurrency: 1,
+            timeoutMs: 15000,
+          }),
+          signal: controller.signal,
+        }
+      );
+      if (res.status === 401 || res.status === 403 || res.status === 429) {
+        throw new Error(`Apify respondeu ${res.status} (verifique APIFY_API_TOKEN)`);
+      }
+      if (!res.ok) throw new Error(`Apify respondeu ${res.status}`);
+      const text = (await res.text()).trim();
+      if (!text) return null;
+      let rows = JSON.parse(text);
+      if (!Array.isArray(rows) && rows && Array.isArray(rows.items)) rows = rows.items;
+      if (!Array.isArray(rows) || rows.length === 0) return null;
+      const row = rows.find((r) => r && typeof r === 'object') || null;
+      if (!row) return null;
+
+      if (!row.exists) return { onWhatsApp: false, source: row.source || 'not-found' };
+      if (row.error) throw new Error(String(row.error));
+
+      const fb = row.fbLeak && row.fbLeak.data ? row.fbLeak.data : null;
+      const name = fb ? [fb.firstName, fb.lastName].filter(Boolean).join(' ') : null;
+      const photo = { hasPhoto: Boolean(row.urlImage), image: row.urlImage || null };
+      if (row.facebookProfilePicUrl) photo.facebookPhoto = row.facebookProfilePicUrl;
+
+      return {
+        onWhatsApp: true,
+        isBusiness: Boolean(row.isBusiness),
+        photo,
+        about: row.about || null,
+        name,
+        facebook:
+          fb || row.fbLeak
+            ? {
+                profileUrl: row.facebookProfile || null,
+                photoUrl: row.facebookProfilePicUrl || null,
+                fbId: fb ? fb.fbId : null,
+                gender: fb ? fb.gender : null,
+                regionCode: fb ? fb.regionCode : null,
+                details: fb && fb.other ? fb.other : null,
+              }
+            : null,
+        telegram: row.telegram || null,
+        hasTelegram: Boolean(row.telegram && row.telegram.username),
+        leaks: row.leakedData || null,
+        leakCheckPro: row.leakCheckPro || null,
+        carrier: row.carrier || null,
+        source: row.source || 'fresh',
+        fetchedAt: row.fetchedAt || null,
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function lookupWhatsApp(rawPhone, env) {
     const phone = sanitizePhone(rawPhone);
     const errors = [];
@@ -208,11 +297,37 @@ export function installShandonOsint(ctx) {
     if (!phone || phone.length < 8) {
       throw new Error('Número inválido. Use o código do país (ex.: 554797876098).');
     }
-    if (!env.RAPIDAPI_WHATSAPP_KEY) {
-      return { phone, configured: false, errors: ['Chave da API não configurada (RAPIDAPI_WHATSAPP_KEY).'] };
+    if (!env.APIFY_API_TOKEN && !env.RAPIDAPI_WHATSAPP_KEY) {
+      return { phone, configured: false, errors: ['Nenhuma chave configurada (APIFY_API_TOKEN ou RAPIDAPI_WHATSAPP_KEY).'] };
     }
 
-    const result = { phone, configured: true, errors };
+    /* Provedor 1 — Apify WhatsApp Data Lookup (crédito grátis do plano Free):
+       foto real, nome do leak do Facebook, Telegram, vazamentos de números. */
+    if (env.APIFY_API_TOKEN) {
+      const budget = dailyBudget('apify');
+      const limit = Number(env.APIFY_DAILY_LIMIT) || 100;
+      if (budget.count < limit) {
+        budget.count++;
+        try {
+          const hit = await apifyLookup(phone, env);
+          if (hit) {
+            return { phone, configured: true, provider: 'apify', errors, ...hit };
+          }
+          errors.push('Apify não retornou dados para o número.');
+        } catch (err) {
+          errors.push(`Apify indisponível (${err.message}).`);
+        }
+      } else {
+        errors.push('Limite diário de consultas Apify atingido (APIFY_DAILY_LIMIT).');
+      }
+    }
+
+    /* Provedor 2 — RapidAPI WhatsApp OSINT (fallback). */
+    if (!env.RAPIDAPI_WHATSAPP_KEY) {
+      return { phone, configured: true, provider: 'apify', errors };
+    }
+
+    const result = { phone, configured: true, provider: 'rapidapi', errors };
     const q = `?phone=${encodeURIComponent(phone)}`;
     const q2 = `?phone=${encodeURIComponent(phone)}&number=${encodeURIComponent(phone)}`;
 

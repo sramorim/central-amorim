@@ -467,6 +467,13 @@ export function createApp({ db, env = {} }) {
     PIX_AMOUNT_BRL: env.PIX_AMOUNT_BRL || '9.99',
     WA_NUMBER: env.WA_NUMBER || '',
     SHANDON_ORIGIN: env.SHANDON_ORIGIN || 'https://elite.senhoramorim.com.br',
+    /* --- Chaves/limites das ferramentas OSINT (SHANDON ELITE) --- */
+    /* Secrets (RAPIDAPI_WHATSAPP_KEY, APIFY_API_TOKEN) chegam via env do Worker
+       e são repassados aqui; NUNCA declarar como var no wrangler.toml. */
+    RAPIDAPI_WHATSAPP_KEY: env.RAPIDAPI_WHATSAPP_KEY || '',
+    RAPIDAPI_WHATSAPP_HOST: env.RAPIDAPI_WHATSAPP_HOST || '',
+    APIFY_API_TOKEN: env.APIFY_API_TOKEN || '',
+    APIFY_DAILY_LIMIT: Number(env.APIFY_DAILY_LIMIT) || 100,
   };
   const router = new Map();
 
