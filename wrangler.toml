@@ -9,6 +9,23 @@ compatibility_flags = ["nodejs_compat"]
 directory = "./dist"
 binding = "ASSETS"
 
+[vars]
+# Fixados aqui para que o CI (`wrangler deploy`) aplique a mesma configuração
+# em todo deploy. Ajuste os valores no Cloudflare Dashboard e os espelhe aqui.
+PUBLIC_ORIGIN = "https://senhoramorim.com.br"
+COOKIE_DOMAIN = ".senhoramorim.com.br"
+COOKIE_SECURE = "true"
+PIX_NAME = "SENHOR AMORIM"
+PIX_CITY = "BRASIL"
+PIX_AMOUNT_BRL = "79"
+# Chave Pix (EVP) da Central — pública, usada no QR/copia-e-cola do checkout.
+PIX_KEY = "ee2ee68d-3e68-4458-a32e-d34af93772ef"
+# WhatsApp Business que recebe comprovantes (preenchido quando o chip chegar).
+WA_NUMBER = ""
+# E-mail(s) admin: o mesmo da conta que o dono usa para entrar no painel /admin.
+# Ex.: ADMIN_EMAILS = "contato.centralamorim@gmail.com"
+ADMIN_EMAILS = ""
+
 [observability]
 enabled = true
 
