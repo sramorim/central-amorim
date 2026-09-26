@@ -158,6 +158,7 @@ export function installShandonOsint(ctx) {
       if (res.status === 401 || res.status === 403) {
         throw new Error('Falha de autenticação na API (verifique RAPIDAPI_WHATSAPP_KEY)');
       }
+      if (res.status === 404) return { __notFound: true };
       const text = (await res.text()).trim();
       if (!text) return null;
       try {
@@ -168,6 +169,16 @@ export function installShandonOsint(ctx) {
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  /* Tenta cada caminho listado; pule os que a API não tiver (404) — assim,
+     se o provedor renomear endpoints, a consulta continua funcionando. */
+  async function rapidCandidates(candidates, env) {
+    for (const c of candidates) {
+      const out = await rapid(c.path, c.method || 'GET', c.body || null, env);
+      if (out && !out.__notFound) return out;
+    }
+    return null;
   }
 
   function parsePhoto(raw) {
@@ -203,14 +214,17 @@ export function installShandonOsint(ctx) {
 
     const result = { phone, configured: true, errors };
     const q = `?phone=${encodeURIComponent(phone)}`;
+    const q2 = `?phone=${encodeURIComponent(phone)}&number=${encodeURIComponent(phone)}`;
+
+    const toCandidates = (list) => list.map((p) => (typeof p === 'string' ? { path: p } : p));
 
     const [photoRaw, aboutRaw, businessRaw, devicesRaw, fullRaw, privacyRaw] = await Promise.allSettled([
-      rapid(`/wspic/b64${q}`, 'GET', null, env),
-      rapid(`/about${q}`, 'GET', null, env),
-      rapid('/bizos', 'POST', { phone }, env),
-      rapid(`/devices${q}`, 'GET', null, env),
-      rapid(`/wspic/dck${q}`, 'GET', null, env),
-      rapid(`/privacy${q}`, 'GET', null, env),
+      rapidCandidates(toCandidates([`/wspic/b64${q}`, `/base64-encoded-profile${q}`, `/profile-picture${q2}`]), env),
+      rapidCandidates(toCandidates([`/about${q}`, `/status${q}`]), env),
+      rapidCandidates([{ path: '/bizos', method: 'POST', body: { phone } }, { path: '/business-insights', method: 'POST', body: { phone, number: phone } }], env),
+      rapidCandidates(toCandidates([`/devices${q}`, `/devices${q2}`]), env),
+      rapidCandidates(toCandidates([`/wspic/dck${q}`, `/fetch-osint-info${q}`, `/fetch-osint-info${q2}`]), env),
+      rapidCandidates(toCandidates([`/privacy${q}`, `/privacy-settings${q}`, `/privacy-settings${q2}`]), env),
     ]);
 
     const label = (name, reason) => name + ': ' + reason.message;
