@@ -21,6 +21,8 @@ export default defineConfig({
         'minha-conta': resolve(__dirname, 'minha-conta.html'),
         follow: resolve(__dirname, 'follow.html'),
         radar: resolve(__dirname, 'radar.html'),
+        pix: resolve(__dirname, 'pix.html'),
+        admin: resolve(__dirname, 'admin.html'),
       },
     },
   },

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Central Amorim — Painel</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#0b0f19; --panel:#111827; --panel-2:#151d2f; --line:rgba(255,255,255,.08); --text:#ecf1f8; --muted:#94a3b8; --accent:#2b6bff; --ok:#34d399; --danger:#f87171; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; padding: 28px 18px 64px; }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+    h1 { font-size: 22px; }
+    a { color: var(--accent); text-decoration: none; }
+    .btn { background: linear-gradient(135deg, var(--accent), #7c5cff); border: none; color: #fff; font-weight: 700; font-size: 12px; padding: 8px 14px; border-radius: 10px; cursor: pointer; }
+    .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+    .btn.ok { background: var(--ok); color: #062b33; }
+    table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 12px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { background: var(--panel-2); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+    .chip { border-radius: 999px; padding: 3px 10px; font-weight: 700; font-size: 11px; }
+    .chip.pending { background: rgba(251,191,36,.14); color: #fbbf24; }
+    .chip.activated { background: rgba(52,211,153,.14); color: var(--ok); }
+    .empty { color: var(--muted); font-size: 13px; padding: 18px; }
+    .msg { font-size: 12px; margin-top: 10px; }
+    .msg.err { color: var(--danger); }
+    .msg.ok { color: var(--ok); }
+    .footer { margin-top: 30px; color: var(--muted); font-size: 11px; text-align: center; border-top: 1px solid var(--line); padding-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Painel da Central</h1>
+      <div>
+        <a class="btn ghost" href="/">← Central</a>
+        <a class="btn ghost" href="/pix" style="margin-left:8px;">Ver /pix</a>
+      </div>
+    </header>
+
+    <div class="msg" id="status"></div>
+    <table id="orders-table" hidden>
+      <thead>
+        <tr><th>Pedido</th><th>Cliente</th><th>E-mail</th><th>Valor</th><th>Status</th><th>Criado</th><th>Ação</th></tr>
+      </thead>
+      <tbody id="orders-body"></tbody>
+    </table>
+    <div class="empty" id="orders-empty" hidden>Sem pedidos ainda.</div>
+
+    <p class="footer"><b>© 2026 Senhor Amorim — Daniel Amorim</b> · Todos os direitos reservados · uso interno</p>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var $ = function (id) { return document.getElementById(id); };
+
+      function status(msg, kind) {
+        var el = $('status');
+        el.textContent = msg;
+        el.className = 'msg ' + (kind || '');
+      }
+
+      function fmtDate(ts) {
+        if (!ts) return '—';
+        return new Date(ts).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      }
+
+      function fmtValor(cents) {
+        return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      }
+
+      function load() {
+        status('Carregando pedidos…');
+        fetch('/api/orders', { credentials: 'same-origin' })
+          .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+          .then(function (res) {
+            if (res.status === 401) {
+              status('Faça login como administrador para acessar o painel.', 'err');
+              $('status').innerHTML = 'Faça login como administrador para acessar o painel. <a href="/entrar">Entrar</a>';
+              return;
+            }
+            if (res.status === 403) return status('Acesso negado (necessário conta administrativa).', 'err');
+            if (!res.data || !res.data.ok) return status('Erro ao carregar pedidos.', 'err');
+
+            var orders = res.data.orders || [];
+            if (!orders.length) {
+              $('orders-empty').hidden = false;
+              $('orders-table').hidden = true;
+              status('');
+              return;
+            }
+            $('orders-empty').hidden = true;
+            $('orders-table').hidden = false;
+
+            var body = $('orders-body');
+            body.innerHTML = '';
+            orders.forEach(function (o) {
+              var tr = document.createElement('tr');
+              var actions = '';
+              if (o.status === 'pending') {
+                actions = '<button type="button" class="btn ok" data-code="' + escapeHtml(o.code) + '">Ativar PRO</button>';
+              }
+              tr.innerHTML =
+                '<td><b>' + escapeHtml(o.code) + '</b></td>' +
+                '<td>' + escapeHtml(o.name) + '</td>' +
+                '<td>' + escapeHtml(o.email) + '</td>' +
+                '<td>' + fmtValor(o.amount) + '</td>' +
+                '<td><span class="chip ' + (o.status === 'activated' ? 'activated' : 'pending') + '">' + escapeHtml(o.status) + '</span></td>' +
+                '<td>' + fmtDate(o.created_at) + '</td>' +
+                '<td>' + actions + '</td>';
+              body.appendChild(tr);
+            });
+
+            body.querySelectorAll('button[data-code]').forEach(function (btn) {
+              btn.addEventListener('click', function () {
+                activate(btn.getAttribute('data-code'), btn);
+              });
+            });
+            status('');
+          })
+          .catch(function () { status('Erro de conexão.', 'err'); });
+      }
+
+      function activate(code, btn) {
+        btn.disabled = true;
+        btn.textContent = 'Ativando…';
+        fetch('/api/orders/activate', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ code: code }),
+        })
+          .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+          .then(function (res) {
+            if (res.status === 200) {
+              status('Pedido ' + code + ' ativado. PRO liberado para o e-mail do cliente.', 'ok');
+              load();
+            } else {
+              btn.disabled = false;
+              btn.textContent = 'Ativar PRO';
+              status((res.data && res.data.error) || 'Não foi possível ativar.', 'err');
+            }
+          })
+          .catch(function () {
+            btn.disabled = false;
+            btn.textContent = 'Ativar PRO';
+            status('Erro de conexão.', 'err');
+          });
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      load();
+    })();
+  </script>
+</body>
+</html>

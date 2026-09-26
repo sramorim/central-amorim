@@ -212,8 +212,23 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   count INTEGER NOT NULL,
   window_start INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS orders (
+  id TEXT PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  cpf TEXT,
+  plan TEXT NOT NULL DEFAULT 'pro',
+  amount INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at INTEGER NOT NULL,
+  paid_at INTEGER,
+  activated_at INTEGER
+);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_email ON orders(email);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 `;
 
 let ensured = false;
@@ -319,6 +334,60 @@ function originAllowed(request, env) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Pix / orders helpers                                                */
+/* ------------------------------------------------------------------ */
+
+function pixField(id, value) {
+  const v = String(value);
+  const len = String(v.length).padStart(2, '0');
+  return id + len + v;
+}
+
+function pixCrc16(payload) {
+  let crc = 0xffff;
+  for (let i = 0; i < payload.length; i++) {
+    crc ^= payload.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function pixPayloadFor(cfg) {
+  const merchantAccount = pixField('00', 'br.gov.bcb.pix') + pixField('01', cfg.PIX_KEY);
+  const amount = (Number(cfg.PIX_AMOUNT_BRL) || 79).toFixed(2);
+  const name = String(cfg.PIX_NAME || 'SENHOR AMORIM').slice(0, 25);
+  const city = String(cfg.PIX_CITY || 'BRASIL').slice(0, 15);
+  const payload =
+    pixField('00', '01') +
+    pixField('26', merchantAccount) +
+    pixField('52', '0000') +
+    pixField('53', '986') +
+    pixField('54', amount) +
+    pixField('58', 'BR') +
+    pixField('59', name) +
+    pixField('60', city) +
+    pixField('62', pixField('05', '***')) +
+    '6304';
+  return payload + pixCrc16(payload);
+}
+
+const ORDER_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+function makeOrderCode() {
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  let code = 'COD-';
+  for (const b of bytes) code += ORDER_CODE_CHARS[b % ORDER_CODE_CHARS.length];
+  return code;
+}
+
+function toRows(result) {
+  if (Array.isArray(result)) return result;
+  return (result && Array.isArray(result.results)) ? result.results : [];
+}
+
+/* ------------------------------------------------------------------ */
 /* Session / access resolution                                        */
 /* ------------------------------------------------------------------ */
 
@@ -334,14 +403,25 @@ async function getEntitlement(db, userId) {
   return db.prepare('SELECT user_id, plan, status, started_at, expires_at, provider FROM entitlements WHERE user_id = ?').bind(userId).first();
 }
 
+async function hasProOrder(db, email) {
+  if (!email) return null;
+  return db.prepare("SELECT id FROM orders WHERE lower(email) = lower(?) AND status = 'activated' AND plan = 'pro' LIMIT 1").bind(email).first();
+}
+
 async function ensureEntitlement(db, userId, env) {
   let ent = await getEntitlement(db, userId);
+  const user = await db.prepare('SELECT email FROM users WHERE id = ?').bind(userId).first();
+  const proOrder = await hasProOrder(db, user ? user.email : null);
   if (!ent) {
     const now = Date.now();
     const adminEmails = (env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
-    const user = await db.prepare('SELECT email FROM users WHERE id = ?').bind(userId).first();
-    const plan = user && adminEmails.includes(user.email.toLowerCase()) ? 'admin' : 'free';
-    await db.prepare('INSERT OR IGNORE INTO entitlements (user_id, plan, status, started_at, provider) VALUES (?, ?, ?, ?, ?)').bind(userId, plan, 'active', now, 'central').run();
+    const isAdmin = user && adminEmails.includes(user.email.toLowerCase());
+    const plan = isAdmin ? 'admin' : proOrder ? 'pro' : 'free';
+    await db.prepare('INSERT OR IGNORE INTO entitlements (user_id, plan, status, started_at, provider) VALUES (?, ?, ?, ?, ?)').bind(userId, plan, 'active', now, isAdmin ? 'central' : proOrder ? 'pix' : 'central').run();
+    ent = await getEntitlement(db, userId);
+  } else if (proOrder && ent.plan === 'free') {
+    const now = Date.now();
+    await db.prepare("UPDATE entitlements SET plan = 'pro', status = 'active', started_at = ?, expires_at = NULL, provider = 'pix' WHERE user_id = ?").bind(now, userId).run();
     ent = await getEntitlement(db, userId);
   }
   return ent;
@@ -363,6 +443,11 @@ export function createApp({ db, env = {} }) {
     MAIL_FROM: env.MAIL_FROM || '',
     APP_NAME: env.APP_NAME || 'Central Amorim',
     RATE_LIMIT_MAX: Number(env.RATE_LIMIT_MAX) || 6,
+    PIX_KEY: env.PIX_KEY || '',
+    PIX_NAME: env.PIX_NAME || 'SENHOR AMORIM',
+    PIX_CITY: env.PIX_CITY || 'BRASIL',
+    PIX_AMOUNT_BRL: env.PIX_AMOUNT_BRL || '79',
+    WA_NUMBER: env.WA_NUMBER || '',
   };
   const router = new Map();
 
@@ -520,7 +605,7 @@ export function createApp({ db, env = {} }) {
         billing: p.billing,
         features: p.features || [],
         limits: p.limits ? p.limits['amorim-osint'] || null : null,
-        available: p.code !== 'PRO' || false,
+        available: p.code !== 'PRO' || Boolean(cfg.PIX_KEY),
       })),
     });
   });
@@ -566,6 +651,98 @@ export function createApp({ db, env = {} }) {
             ? 'Recurso básico disponível.'
             : 'Acesso liberado.',
     });
+  });
+
+  /* -------- pix checkout (PRO) -------- */
+  router.set('GET /api/pix/config', async () => {
+    const enabled = Boolean(cfg.PIX_KEY);
+    return json({
+      ok: true,
+      enabled,
+      pix: enabled
+        ? { copyPaste: pixPayloadFor(cfg), amountBRL: Number(cfg.PIX_AMOUNT_BRL) || 79, name: cfg.PIX_NAME || 'SENHOR AMORIM' }
+        : null,
+      whatsapp: cfg.WA_NUMBER ? { number: cfg.WA_NUMBER } : null,
+      pro: {
+        code: 'PRO',
+        label: PLANS.pro.label,
+        price: PLANS.pro.billing.unique,
+        note: PLANS.pro.billing.uniqueNote,
+        features: PLANS.pro.features,
+      },
+    });
+  });
+
+  router.set('POST /api/orders', async (request, ctx) => {
+    if (!cfg.PIX_KEY) return json({ ok: false, error: 'Pagamento indisponível no momento.' }, 503);
+
+    const rl = await rateLimit(`order:${ctx.ip}`, 10);
+    if (!rl.ok) return json({ error: 'Muitos pedidos. Aguarde um instante.' }, 429);
+
+    const body = await readBody(request);
+    if (!body || body.__tooLarge) return json({ error: 'Requisição inválida.' }, 400);
+    const name = String(body.name || '').trim();
+    const email = String(body.email || '').trim().toLowerCase();
+    const cpf = String(body.cpf || '').trim().replace(/\D/g, '');
+    if (name.length < 2 || name.length > 80) return json({ error: 'Informe um nome entre 2 e 80 caracteres.' }, 400);
+    if (!EMAIL_RE.test(email) || email.length > 254) return json({ error: 'E-mail inválido.' }, 400);
+    if (cpf && cpf.length !== 11) return json({ error: 'CPF inválido (apenas números).' }, 400);
+
+    await ensureSchema(db);
+    const id = crypto.randomUUID();
+    const code = makeOrderCode();
+    const now = Date.now();
+    const amount = Math.round((Number(cfg.PIX_AMOUNT_BRL) || 79) * 100);
+    await db.prepare('INSERT INTO orders (id, code, name, email, cpf, plan, amount, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(id, code, name, email, cpf || null, 'pro', amount, 'pending', now).run();
+
+    return json({
+      ok: true,
+      order: { code, status: 'pending', createdAt: now, amount },
+      pix: { copyPaste: pixPayloadFor(cfg), amountBRL: Number(cfg.PIX_AMOUNT_BRL) || 79 },
+      whatsapp: cfg.WA_NUMBER ? { number: cfg.WA_NUMBER } : null,
+      note: 'Após pagar, envie o comprovante no WhatsApp informando o código do pedido para ativar o PRO.',
+    }, 201);
+  });
+
+  /* -------- admin: orders -------- */
+  async function adminCheck(request) {
+    await ensureSchema(db);
+    const cookies = getCookies(request);
+    const session = await getSession(db, cookies.sam_session);
+    if (!session) return { error: json({ ok: false, error: 'Não autenticado.' }, 401) };
+    const ent = (await getEntitlement(db, session.userId)) || (await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS }));
+    if (ent.plan !== 'admin') return { error: json({ ok: false, error: 'Acesso negado.' }, 403) };
+    return { session };
+  }
+
+  router.set('GET /api/orders', async (request) => {
+    const check = await adminCheck(request);
+    if (check.error) return check.error;
+    const rows = await db.prepare('SELECT id, code, name, email, cpf, amount, plan, status, created_at, paid_at, activated_at FROM orders ORDER BY created_at DESC LIMIT 200').all();
+    return json({ ok: true, orders: toRows(rows) });
+  });
+
+  router.set('POST /api/orders/activate', async (request) => {
+    const check = await adminCheck(request);
+    if (check.error) return check.error;
+
+    const body = await readBody(request);
+    const code = String((body && body.code) || '').trim().toUpperCase();
+    if (!code) return json({ error: 'Código do pedido é obrigatório.' }, 400);
+
+    const order = await db.prepare('SELECT * FROM orders WHERE code = ?').bind(code).first();
+    if (!order) return json({ error: 'Pedido não encontrado.' }, 404);
+    if (order.status !== 'pending') return json({ error: `Este pedido já está ${order.status}.` }, 409);
+
+    const now = Date.now();
+    await db.prepare("UPDATE orders SET status = 'activated', paid_at = ?, activated_at = ? WHERE code = ?").bind(now, now, code).run();
+
+    const buyer = await db.prepare('SELECT id FROM users WHERE lower(email) = lower(?)').bind(order.email).first();
+    if (buyer) {
+      await db.prepare("UPDATE entitlements SET plan = 'pro', status = 'active', started_at = ?, expires_at = NULL, provider = 'pix' WHERE user_id = ?").bind(now, buyer.id).run();
+    }
+
+    return json({ ok: true, order: { code: order.code, status: 'activated', name: order.name, email: order.email } });
   });
 
   /* -------- admin users -------- */
