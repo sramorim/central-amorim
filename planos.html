@@ -66,8 +66,8 @@
 
         <div class="plans-notice">
           <p>
-            O plano <strong>PRO</strong> libera a árvore completa do AMORIM OSINT. Nesta etapa ainda não há
-            cobrança: o checkout será habilitado em uma próxima etapa.
+            O plano <strong>PRO</strong> libera a árvore completa do AMORIM OSINT. O pagamento é único
+            (R$ 79,00) via Pix — o acesso é liberado após a confirmação do comprovante.
           </p>
           <p class="plans-current" id="plans-current"></p>
         </div>
@@ -144,7 +144,7 @@
             p.code === 'FREE'
               ? (myPlan ? `<span class="plan-current-tag">Seu plano atual</span>` : `<a class="btn btn-primary" href="/criar-conta">Criar conta gratuita</a>`)
               : p.code === 'PRO'
-                ? (p.available ? `<a class="btn btn-primary" href="/assinar/pro">Assinar PRO</a>` : `<span class="plan-soon-tag">Assinatura em breve</span>`)
+                ? (p.available ? `<a class="btn btn-primary" href="/pix">Assinar PRO</a>` : `<span class="plan-soon-tag">Assinatura em breve</span>`)
                 : `<span class="plan-soon-tag" style="background:rgba(43,107,255,.08);color:var(--accent-strong);border-color:var(--accent-line)">Uso interno</span>`;
           return `
           <article class="plan-card ${TONES[p.code] || ''}">
