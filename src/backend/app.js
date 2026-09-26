@@ -656,8 +656,13 @@ export function createApp({ db, env = {} }) {
 
   /* -------- health -------- */
   router.set('GET /api/health', async () => {
-    await ensureSchema(db);
-    return json({ ok: true, service: 'central-amorim', time: Date.now() });
+    // TEMP-DIAG: expor detalhe do erro enquanto depotamos o D1 em produção.
+    try {
+      await ensureSchema(db);
+      return json({ ok: true, service: 'central-amorim', time: Date.now() });
+    } catch (e) {
+      return json({ ok: false, error: String((e && e.message) || e), cause: String((e && e.cause) || ''), name: (e && e.name) || '' }, 500);
+    }
   });
 
   /* -------- google availability probe (no secrets exposed) -------- */
