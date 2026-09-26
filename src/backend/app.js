@@ -357,7 +357,7 @@ function pixCrc16(payload) {
 function pixPayloadFor(cfg) {
   const merchantAccount = pixField('00', 'br.gov.bcb.pix') + pixField('01', cfg.PIX_KEY);
   const amount = (Number(cfg.PIX_AMOUNT_BRL) || 79).toFixed(2);
-  const name = String(cfg.PIX_NAME || 'SENHOR AMORIM').slice(0, 25);
+  const name = String(cfg.PIX_NAME || 'SR. AMORIM').slice(0, 25);
   const city = String(cfg.PIX_CITY || 'BRASIL').slice(0, 15);
   const payload =
     pixField('00', '01') +
@@ -444,7 +444,7 @@ export function createApp({ db, env = {} }) {
     APP_NAME: env.APP_NAME || 'Central Amorim',
     RATE_LIMIT_MAX: Number(env.RATE_LIMIT_MAX) || 6,
     PIX_KEY: env.PIX_KEY || '',
-    PIX_NAME: env.PIX_NAME || 'SENHOR AMORIM',
+    PIX_NAME: env.PIX_NAME || 'SR. AMORIM',
     PIX_CITY: env.PIX_CITY || 'BRASIL',
     PIX_AMOUNT_BRL: env.PIX_AMOUNT_BRL || '79',
     WA_NUMBER: env.WA_NUMBER || '',
@@ -660,7 +660,7 @@ export function createApp({ db, env = {} }) {
       ok: true,
       enabled,
       pix: enabled
-        ? { copyPaste: pixPayloadFor(cfg), amountBRL: Number(cfg.PIX_AMOUNT_BRL) || 79, name: cfg.PIX_NAME || 'SENHOR AMORIM' }
+        ? { copyPaste: pixPayloadFor(cfg), amountBRL: Number(cfg.PIX_AMOUNT_BRL) || 79, name: cfg.PIX_NAME || 'SR. AMORIM' }
         : null,
       whatsapp: cfg.WA_NUMBER ? { number: cfg.WA_NUMBER } : null,
       pro: {

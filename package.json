@@ -1,7 +1,7 @@
 {
   "name": "central-amorim",
   "version": "1.0.0",
-  "description": "Central Amorim - Portal principal da marca Senhor Amorim",
+  "description": "Central Amorim - Portal principal da marca Sr. Amorim",
   "type": "module",
   "scripts": {
     "dev": "node ./node_modules/vite/bin/vite.js",
@@ -9,7 +9,7 @@
     "preview": "node ./node_modules/vite/bin/vite.js preview",
     "test": "node --test tests/*.mjs"
   },
-  "author": "Senhor Amorim — Daniel Amorim",
+  "author": "Sr. Amorim — Daniel Amorim",
   "license": "UNLICENSED",
   "private": true,
   "devDependencies": {

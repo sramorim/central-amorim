@@ -58,7 +58,7 @@ async function register(nameApp, { name, email, password }) {
 
 before(() => {
   freshApp('off'); // sem PIX configurado
-  freshApp('pay', { PIX_KEY: 'central-amorim@exemplo.com', PIX_NAME: 'SENHOR AMORIM', PIX_CITY: 'BRASIL', PIX_AMOUNT_BRL: '79' });
+  freshApp('pay', { PIX_KEY: 'central-amorim@exemplo.com', PIX_NAME: 'SR. AMORIM', PIX_CITY: 'BRASIL', PIX_AMOUNT_BRL: '79' });
   freshApp('admin', { PIX_KEY: 'central-amorim@exemplo.com', ADMIN_EMAILS: 'dono@central.com' });
 });
 

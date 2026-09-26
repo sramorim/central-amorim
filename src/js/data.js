@@ -60,7 +60,7 @@ export const projects = [
 export const socialLinks = [
   {
     name: 'Instagram',
-    // TODO(substituir apenas quando houver): URL oficial/pessoal do Instagram do Senhor Amorim
+    // TODO(substituir apenas quando houver): URL oficial/pessoal do Instagram do Sr. Amorim
     url: 'https://instagram.com/',
     icon: 'instagram',
     label: 'Siga no Instagram',
@@ -79,7 +79,7 @@ export const socialLinks = [
 ];
 
 export const siteConfig = {
-  brand: 'SENHOR AMORIM',
+  brand: 'SR. AMORIM',
   platform: 'CENTRAL AMORIM',
-  copyright: '© 2026 Senhor Amorim — Daniel Amorim',
+  copyright: '© 2026 Sr. Amorim — Daniel Amorim',
 };

@@ -24,7 +24,7 @@ Navegador ── static ──> /, /planos, /minha-conta …
   `pbkdf2_sha256$iteracoes$salt_hex$hash_hex`, comparação com timing-safe.
 - **Sessão**: token opaco (32 bytes hex) em tabela `sessions`; cookie `sam_session`
   HttpOnly/Secure/SameSite=Lax com `Domain=.senhoramim.com.br` — identidade de conta
-  compartilhada entre subdomínios do Senhor Amorim (AMORIM OSINT, Shandon Elite etc. no futuro).
+  compartilhada entre subdomínios do Sr. Amorim (AMORIM OSINT, Shandon Elite etc. no futuro).
 - **Planos**: `FREE` (padrão ao criar conta), `PRO` (estrutura de expansão, sem cobrança
   nesta etapa), `ADMIN` (via `ADMIN_EMAILS`). Visitante = `GUEST_LIMITS` (demo).
 - **Controle de acesso**: `POST /api/access/check` decide no servidor se um usuário

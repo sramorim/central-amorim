@@ -15,7 +15,7 @@ binding = "ASSETS"
 PUBLIC_ORIGIN = "https://senhoramorim.com.br"
 COOKIE_DOMAIN = ".senhoramorim.com.br"
 COOKIE_SECURE = "true"
-PIX_NAME = "SENHOR AMORIM"
+PIX_NAME = "SR. AMORIM"
 PIX_CITY = "BRASIL"
 PIX_AMOUNT_BRL = "79"
 # Chave Pix (EVP) da Central — pública, usada no QR/copia-e-cola do checkout.
