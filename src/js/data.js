@@ -56,6 +56,48 @@ export const projects = [
     urlLabel: 'Abrir Ferramenta',
     buttonStyle: 'primary',
   },
+  {
+    id: 'amorim-facebook',
+    name: 'AMORIM FACEBOOK',
+    description:
+      'Quem não te segue de volta, quem te segue sem retorno e sua lista de amigos no Facebook — analisados com os seus próprios dados oficiais, 100% no seu dispositivo.',
+    category: 'Facebook & Redes',
+    status: 'published',
+    statusLabel: 'Publicado',
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    subdomain: 'senhoramorim.com.br/facebook',
+    url: '/facebook',
+    urlLabel: 'Abrir Ferramenta',
+    buttonStyle: 'primary',
+  },
+  {
+    id: 'amorim-atividade',
+    name: 'AMORIM ATIVIDADE',
+    description:
+      'Seus posts do Instagram viram estatísticas: calendário de postagens, dias e horários mais ativos, fotos, vídeos e média mensal — com os seus próprios dados, 100% offline.',
+    category: 'Instagram & Redes',
+    status: 'published',
+    statusLabel: 'Publicado',
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+    subdomain: 'senhoramorim.com.br/atividade',
+    url: '/atividade',
+    urlLabel: 'Abrir Ferramenta',
+    buttonStyle: 'primary',
+  },
+  {
+    id: 'amorim-whatsapp',
+    name: 'AMORIM WHATSAPP',
+    description:
+      'Analise conversas exportadas do WhatsApp: quem mais fala, palavras e emojis mais usados, horário de pico e calendário de mensagens. Seus dados, processados no seu dispositivo.',
+    category: 'Mensagens & Chats',
+    status: 'published',
+    statusLabel: 'Publicado',
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8z"/></svg>',
+    subdomain: 'senhoramorim.com.br/whatsapp',
+    url: '/whatsapp',
+    urlLabel: 'Abrir Ferramenta',
+    buttonStyle: 'primary',
+  },
 ];
 
 export const socialLinks = [

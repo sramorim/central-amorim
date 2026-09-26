@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AMORIM ATIVIDADE — Estatísticas dos seus posts no Instagram</title>
+  <meta name="description" content="Transforme seus posts do Instagram em estatísticas: calendário de postagem, horários e dias mais ativos, fotos e vídeos — tudo offline, com seus dados oficiais." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --accent: #2b6bff;
+      --accent-violet: #7c5cff;
+      --bg: #0b0f19;
+      --panel: #111827;
+      --panel-2: #151d2f;
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #ecf1f8;
+      --muted: #94a3b8;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
+    body { min-height: 100vh; background: radial-gradient(1100px 520px at 85% -10%, rgba(124,92,255,.16), transparent 60%), radial-gradient(900px 500px at 5% -5%, rgba(43,107,255,.18), transparent 55%), var(--bg); }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 28px 18px 64px; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 30px; }
+    .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
+    .logo-mark { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-violet)); }
+    .logo b { letter-spacing: .12em; font-size: 13px; }
+    .logo small { display: block; color: var(--muted); font-size: 10px; letter-spacing: .18em; }
+    .back { color: var(--muted); font-size: 12px; text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+    .back:hover { color: var(--text); border-color: var(--accent); }
+    h1 { font-size: clamp(24px, 4.5vw, 34px); letter-spacing: .02em; line-height: 1.15; }
+    h1 .grad { background: linear-gradient(90deg, var(--accent), var(--accent-violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .tagline { color: var(--muted); margin-top: 8px; font-size: 15px; line-height: 1.6; max-width: 640px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-top: 26px; }
+    .card h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .drop { border: 1.5px dashed rgba(124,92,255,.4); border-radius: 12px; padding: 22px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; position: relative; }
+    .drop:hover, .drop.drag { border-color: var(--accent-violet); background: rgba(124,92,255,.06); }
+    .drop.loaded { border-style: solid; border-color: var(--ok); background: rgba(52,211,153,.06); }
+    .drop b { display: block; font-size: 14px; margin-bottom: 4px; }
+    .drop span { font-size: 11px; color: var(--muted); }
+    .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; cursor: pointer; }
+    .hint { margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
+    @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 12px; }
+    .stat .num { font-size: 22px; font-weight: 800; }
+    .stat .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+    .block { margin-top: 22px; }
+    .block h3 { font-size: 13px; color: var(--muted); margin-bottom: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+    .heat { display: grid; gap: 4px; }
+    .heat .row { display: grid; grid-template-columns: 40px repeat(12, 1fr); gap: 4px; }
+    .heat .row b { font-size: 10px; color: var(--muted); align-self: center; font-weight: 600; }
+    .cell { aspect-ratio: 1; border-radius: 4px; background: rgba(255,255,255,.05); }
+    .cell.c1 { background: rgba(43,107,255,.25); }
+    .cell.c2 { background: rgba(43,107,255,.5); }
+    .cell.c3 { background: rgba(124,92,255,.7); }
+    .cell.c4 { background: linear-gradient(135deg, var(--accent), var(--accent-violet)); }
+    .legend { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 10px; color: var(--muted); }
+    .legend i { width: 12px; height: 12px; border-radius: 3px; background: rgba(255,255,255,.05); }
+    .legend i.l1 { background: rgba(43,107,255,.25); }
+    .legend i.l2 { background: rgba(43,107,255,.5); }
+    .legend i.l3 { background: rgba(124,92,255,.7); }
+    .legend i.l4 { background: var(--accent); }
+    .bars { display: grid; gap: 5px; }
+    .bar { display: grid; grid-template-columns: 52px 1fr 44px; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+    .bar .track { height: 16px; background: rgba(255,255,255,.05); border-radius: 5px; overflow: hidden; }
+    .bar .fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--accent), var(--accent-violet)); min-width: 2px; }
+    .bar b { font-size: 10px; color: var(--muted); font-weight: 600; text-align: right; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { font-size: 12px; border: 1px solid var(--line); background: var(--panel-2); border-radius: 999px; padding: 6px 12px; }
+    .chip b { color: var(--accent); }
+    .btn { margin-top: 18px; display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, var(--accent), var(--accent-violet)); border: none; color: #fff; font-weight: 700; font-size: 13px; padding: 11px 18px; border-radius: 999px; cursor: pointer; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .note { margin-top: 22px; font-size: 12px; color: var(--muted); line-height: 1.6; border-top: 1px solid var(--line); padding-top: 16px; }
+    .note a { color: var(--accent); text-decoration: none; }
+    details.help { margin-top: 16px; font-size: 13px; background: rgba(255,255,255,.02); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+    details.help summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 13px; }
+    details.help[open] summary { margin-bottom: 6px; }
+    details.help ol { margin: 8px 0 0 18px; color: var(--muted); line-height: 1.75; }
+    details.help li { margin-bottom: 6px; }
+    details.help code { background: rgba(255,255,255,.07); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 12px; color: var(--text); }
+    details.help small { color: var(--muted); opacity: .8; }
+    .empty { color: var(--ok); font-size: 12px; padding: 12px 16px; }
+    .footer { margin-top: 40px; text-align: center; color: var(--muted); font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="logo" href="/">
+        <span class="logo-mark" aria-hidden="true">SA</span>
+        <span><b>SR. AMORIM</b><small>CENTRAL AMORIM</small></span>
+      </a>
+      <a class="back" href="/">← Voltar</a>
+    </header>
+
+    <h1>AMORIM <span class="grad">ATIVIDADE</span></h1>
+    <p class="tagline">Seus posts do Instagram viram estatísticas: <b>calendário de postagem, dias e horários mais ativos, fotos, vídeos e média mensal</b>. Importe o <b>posts_1.json</b> dos seus próprios dados oficiais — tudo é processado <b>dentro do seu dispositivo</b>, nada sai daqui.</p>
+
+    <div class="card">
+      <h2>1 · Importe seu arquivo</h2>
+      <label class="drop" id="drop-posts">
+        <b>🗓️ Arquivo <em>posts_1.json</em></b>
+        <span>Arquivo de publicações do seu download do Instagram</span>
+        <input type="file" id="file-posts" accept=".json" />
+      </label>
+
+      <details class="help" open>
+        <summary>Como obter meus dados? (caminho dentro do Instagram)</summary>
+        <ol>
+          <li><b>Abra o Instagram</b> (app ou site) → <b>Seu perfil → ☰ (menu) → Configurações e privacidade</b>.</li>
+          <li>Toque em <b>Central de Contas → Suas informações e permissões → Baixar suas informações</b>.<br />
+            <small>Em algumas contas o caminho direto é: Configurações → Sua atividade → Baixar suas informações.</small></li>
+          <li>Escolha sua conta → <b>Avançar</b> → a maior faixa de datas disponível.</li>
+          <li>Formato: escolha <b>JSON</b>. ⚠️ <b>Não escolha HTML</b> — esta ferramenta lê apenas JSON.</li>
+          <li>Em "Selecione as informações", marque <b>Mídia</b> (publicações) → <b>Baixar</b>.</li>
+          <li>Quando chegar o e-mail, baixe o <b>.zip</b> e <b>descompacte</b>.</li>
+          <li>Procure o arquivo <code>posts_1.json</code> dentro de:<br />
+            <code>…/your_instagram_activity/media/posts_1.json</code> (downloads de 2025 em diante)<br />
+            <code>…/content/posts_1.json</code> (downloads antigos)</li>
+          <li><b>Solte o arquivo aqui</b> (ou arraste para a caixa acima) e veja suas estatísticas.</li>
+        </ol>
+      </details>
+    </div>
+
+    <div class="card" id="results" hidden>
+      <h2>2 · Sua atividade</h2>
+      <div class="stats" id="stats"></div>
+
+      <div class="block">
+        <h3>Calendário de postagens (mês a mês)</h3>
+        <div class="heat" id="heat"></div>
+        <div class="legend"><span>menos</span><i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>mais</span></div>
+      </div>
+
+      <div class="block">
+        <h3>Horário em que você posta (hora do dia)</h3>
+        <div class="bars" id="hours"></div>
+      </div>
+
+      <div class="block">
+        <h3>Dias da semana</h3>
+        <div class="bars" id="days"></div>
+      </div>
+
+      <div class="block">
+        <h3>Seus meses mais ativos</h3>
+        <div class="chips" id="topmonths"></div>
+      </div>
+
+      <button class="btn" id="export-btn" disabled>⬇️ Exportar estatísticas (.csv)</button>
+    </div>
+
+    <p class="note">
+      🔒 <b>Privacidade primeiro:</b> o arquivo é processado 100% no seu navegador e nunca é enviado a nenhum servidor.
+      Esta ferramenta usa apenas os dados que <b>você mesmo</b> baixou da sua conta.
+      Projeto oficial de Sr. Amorim — <a href="/">Central Amorim</a>.
+    </p>
+
+    <p class="footer"><b>© 2026 Sr. Amorim — Daniel Amorim</b> · Todos os direitos reservados · <b>AMORIM ATIVIDADE</b></p>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      var DAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+      var posts = [];
+
+      document.getElementById('file-posts').addEventListener('change', load);
+      var drop = document.getElementById('drop-posts');
+      ['dragover', 'dragenter'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('drag'); }); });
+      ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('drag'); }); });
+
+      function load() {
+        var file = document.getElementById('file-posts').files && document.getElementById('file-posts').files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          var parsed = parsePosts(reader.result, file.name);
+          if (!parsed.length) {
+            alert('Nenhuma publicação encontrada nesse arquivo. Você soltou o posts_1.json?');
+            return;
+          }
+          posts = parsed;
+          drop.classList.add('loaded');
+          drop.querySelector('b').innerHTML = '✅ Arquivo <em>posts_1.json</em>';
+          drop.querySelector('span').textContent = parsed.length + (parsed.length === 1 ? ' publicação' : ' publicações') + ' lidas';
+          render();
+        };
+        reader.readAsText(file);
+      }
+
+      function parsePosts(text, name) {
+        var data;
+        try { data = JSON.parse(text); } catch (e) { return []; }
+        var list = Array.isArray(data) ? data : (Array.isArray(data.media) ? data.media : []);
+        var out = [];
+        for (var i = 0; i < list.length; i++) {
+          var p = list[i];
+          if (!p || typeof p !== 'object') continue;
+          var media = Array.isArray(p.media) ? p.media : [];
+          var ts = tsOf(p);
+          if (ts == null && media.length) ts = tsOf(media[0]);
+          var caption = '';
+          if (typeof p.caption === 'string' && p.caption.trim()) caption = p.caption.trim();
+          else if (typeof p.title === 'string' && p.title.trim()) caption = p.title.trim();
+          else {
+            for (var m = 0; m < media.length && !caption; m++) {
+              if (media[m] && typeof media[m].title === 'string' && media[m].title.trim()) caption = media[m].title.trim();
+            }
+          }
+          out.push({ ts: ts, caption: caption, mediaCount: Math.max(1, media.length) });
+        }
+        return out;
+      }
+
+      function tsOf(item) {
+        var v = item && (item.creation_timestamp != null ? item.creation_timestamp : item.taken_at);
+        if (v == null) return null;
+        var n = typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.]/g, '')) / 1000;
+        if (isNaN(n) || n <= 0) return null;
+        if (String(v).length === 13) n = n / 1000;
+        return n;
+      }
+
+      function render() {
+        var years = {};
+        var hours = Array(24).fill(0);
+        var days = Array(7).fill(0);
+        var monthsAll = {};
+        var first = null, last = null, totalMedia = 0;
+        for (var i = 0; i < posts.length; i++) {
+          var p = posts[i];
+          totalMedia += p.mediaCount;
+          if (p.ts == null) continue;
+          var d = new Date(p.ts * 1000);
+          if (!first || d < first) first = d;
+          if (!last || d > last) last = d;
+          var ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+          years[d.getFullYear()] = (years[d.getFullYear()] || 0) + 1;
+          monthsAll[ym] = (monthsAll[ym] || 0) + 1;
+          hours[d.getHours()] = (hours[d.getHours()] || 0) + 1;
+          days[(d.getDay() + 6) % 7] = (days[(d.getDay() + 6) % 7] || 0) + 1;
+        }
+
+        document.getElementById('results').hidden = false;
+        var span = first && last ? Math.max(1, Math.round((last - first) / 86400000 / 30.44)) : 1;
+        var stats = [
+          stat(posts.length, 'Publicações'),
+          stat(totalMedia, 'Mídias (fotos/vídeos)'),
+          stat(first ? fmt(first) : '—', 'Primeira publicação'),
+          stat(last ? fmt(last) : '—', 'Mais recente'),
+        ];
+        document.getElementById('stats').innerHTML = stats.join('');
+        document.getElementById('heat').innerHTML = heatHTML(monthsAll, years);
+        document.getElementById('hours').innerHTML = barsHTML(hours, function (i) { return i + 'h'; });
+        document.getElementById('days').innerHTML = barsHTML(days, function (i) { return DAYS[i]; });
+        document.getElementById('topmonths').innerHTML = topMonthsHTML(monthsAll);
+        document.getElementById('export-btn').disabled = false;
+      }
+
+      function heatHTML(monthsAll, years) {
+        var ys = Object.keys(years).sort();
+        if (!ys.length) return '';
+        var rows = '';
+        for (var y = 0; y < ys.length; y++) {
+          var year = ys[y];
+          var cells = '';
+          for (var m = 0; m < 12; m++) {
+            var ym = year + '-' + String(m + 1).padStart(2, '0');
+            var c = monthsAll[ym] || 0;
+            cells += '<div class="cell ' + tier(c) + '" title="' + MONTHS[m] + '/' + year + ': ' + c + '"></div>';
+          }
+          rows += '<div class="row"><b>' + ys[y] + '</b>' + cells + '</div>';
+        }
+        return rows;
+      }
+
+      function tier(c) {
+        if (c <= 0) return '';
+        if (c <= 2) return 'c1';
+        if (c <= 5) return 'c2';
+        if (c <= 12) return 'c3';
+        return 'c4';
+      }
+
+      function barsHTML(counts, labelOf) {
+        var max = 1;
+        for (var i = 0; i < counts.length; i++) max = Math.max(max, counts[i] || 0);
+        var out = '';
+        for (var k = 0; k < counts.length; k++) {
+          var v = counts[k] || 0;
+          var pct = v ? Math.round((v / max) * 100) : 0;
+          out += '<div class="bar"><span>' + labelOf(k) + '</span><div class="track"><div class="fill" style="width:' + Math.max(pct, 2) + '%"></div></div><b>' + v + '</b></div>';
+        }
+        return out;
+      }
+
+      function topMonthsHTML(monthsAll) {
+        var arr = Object.keys(monthsAll).map(function (ym) { return { ym: ym, n: monthsAll[ym] }; });
+        arr.sort(function (a, b) { return b.n - a.n || (a.ym < b.ym ? -1 : 1); });
+        return arr.slice(0, 6).map(function (m) {
+          var parts = m.ym.split('-');
+          return '<div class="chip">' + MONTHS[parseInt(parts[1], 10) - 1] + '/' + parts[0] + ' — <b>' + m.n + '</b></div>';
+        }).join('') || '<span class="empty">Sem dados.</span>';
+      }
+
+      function fmt(d) {
+        return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+      }
+
+      function stat(num, lbl) {
+        return '<div class="stat"><div class="num">' + num + '</div><div class="lbl">' + lbl + '</div></div>';
+      }
+
+      document.getElementById('export-btn').addEventListener('click', function () {
+        var rows = [['ano', 'mes', 'posts']];
+        var monthsAll = {};
+        for (var i = 0; i < posts.length; i++) {
+          var p = posts[i];
+          if (p.ts == null) continue;
+          var d = new Date(p.ts * 1000);
+          var ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+          monthsAll[ym] = (monthsAll[ym] || 0) + 1;
+        }
+        Object.keys(monthsAll).sort().forEach(function (ym) {
+          var parts = ym.split('-');
+          rows.push([parts[0], MONTHS[parseInt(parts[1], 10) - 1], monthsAll[ym]]);
+        });
+        var csv = rows.map(function (r) { return '"' + r.join('","') + '"'; }).join('\n');
+        var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'amorim-atividade.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    })();
+  </script>
+</body>
+</html>
