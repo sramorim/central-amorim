@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IG RADAR — Quem te deixou, quem chegou e quem não te segue</title>
+  <meta name="description" content="Veja quem parou de te seguir, seus novos seguidores e quem não te segue de volta no Instagram. Importe seus próprios dados oficiais — tudo fica no seu dispositivo." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --accent: #06b6d4;
+      --accent-2: #22d3ee;
+      --bg: #0b0f19;
+      --panel: #111827;
+      --panel-2: #151d2f;
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #ecf1f8;
+      --muted: #94a3b8;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
+    body { min-height: 100vh; background: radial-gradient(1100px 520px at 85% -10%, rgba(34,211,238,.14), transparent 60%), radial-gradient(900px 500px at 5% -5%, rgba(6,182,212,.16), transparent 55%), var(--bg); }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 28px 18px 64px; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 30px; }
+    .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
+    .logo-mark { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+    .logo b { letter-spacing: .12em; font-size: 13px; }
+    .logo small { display: block; color: var(--muted); font-size: 10px; letter-spacing: .18em; }
+    .back { color: var(--muted); font-size: 12px; text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+    .back:hover { color: var(--text); border-color: var(--accent); }
+    h1 { font-size: clamp(24px, 4.5vw, 34px); letter-spacing: .02em; line-height: 1.15; }
+    h1 .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .tagline { color: var(--muted); margin-top: 8px; font-size: 15px; line-height: 1.6; max-width: 620px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-top: 26px; }
+    .card h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .inputs { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .drop { border: 1.5px dashed rgba(34,211,238,.4); border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; position: relative; }
+    .drop:hover, .drop.drag { border-color: var(--accent-2); background: rgba(34,211,238,.06); }
+    .drop.loaded { border-style: solid; border-color: var(--ok); background: rgba(52,211,153,.06); }
+    .drop b { display: block; font-size: 13px; margin-bottom: 4px; }
+    .drop span { font-size: 11px; color: var(--muted); }
+    .drop small { font-size: 10px; color: var(--muted); opacity: .8; }
+    .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
+    @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 12px; }
+    .stat .num { font-size: 22px; font-weight: 800; }
+    .stat .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+    .groups { margin-top: 22px; display: grid; gap: 16px; }
+    .group { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .group-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; background: var(--panel-2); }
+    .group-head b { font-size: 13px; }
+    .group-head .chip { font-size: 11px; border-radius: 999px; padding: 3px 10px; font-weight: 700; }
+    .chip.warn { background: rgba(251,191,36,.14); color: var(--warn); }
+    .chip.danger { background: rgba(248,113,113,.14); color: var(--danger); }
+    .chip.ok { background: rgba(52,211,153,.14); color: var(--ok); }
+    ul.list { list-style: none; max-height: 240px; overflow: auto; padding: 8px 16px 14px; display: grid; gap: 2px; }
+    ul.list li { font-size: 13px; color: var(--muted); padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.03); }
+    ul.list li b { color: var(--text); font-weight: 600; }
+    .btn { margin-top: 18px; display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; color: #062b33; font-weight: 800; font-size: 13px; padding: 11px 18px; border-radius: 999px; cursor: pointer; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    details.help { margin-top: 14px; font-size: 13px; }
+    details.help summary { cursor: pointer; color: var(--accent-2); font-weight: 600; font-size: 13px; }
+    details.help ol { margin: 10px 0 0 18px; color: var(--muted); line-height: 1.7; }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+    .note { margin-top: 22px; font-size: 12px; color: var(--muted); line-height: 1.6; border-top: 1px solid var(--line); padding-top: 16px; }
+    .note b { color: var(--text); }
+    .footer { margin-top: 40px; text-align: center; color: var(--muted); font-size: 11px; line-height: 1.7; padding-top: 14px; border-top: 1px solid var(--line); }
+    .footer b { color: var(--text); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="logo" href="/">
+        <span class="logo-mark" aria-hidden="true">SA</span>
+        <span><b>SENHOR AMORIM</b><small>CENTRAL AMORIM</small></span>
+      </a>
+      <a class="back" href="/">← Voltar</a>
+    </header>
+
+    <h1>IG <span class="grad">RADAR</span></h1>
+    <p class="tagline">Veja <b>quem parou de te seguir</b>, quem chegou novo e quem não te segue de volta. Importe os <b>seus próprios dados</b> oficiais do Instagram — tudo é processado <b>dentro do seu dispositivo</b>.</p>
+
+    <div class="card">
+      <h2>1 · Importe seus arquivos</h2>
+      <div class="inputs">
+        <label class="drop" id="drop-old">
+          <b>🐢 Seguidores <em>mais antigo</em></b>
+          <span>Arquivo de seguidores de um mês atrás (o "antes")</span>
+          <input type="file" id="file-old" accept=".json,.txt,.csv" />
+        </label>
+        <label class="drop" id="drop-new">
+          <b>🚀 Seguidores <em>atual</em></b>
+          <span>Arquivo de seguidores baixado hoje (o "depois")</span>
+          <input type="file" id="file-new" accept=".json,.txt,.csv" />
+        </label>
+        <label class="drop" id="drop-following">
+          <b>📤 Seguindo</b>
+          <span>following.json — opcional, ativa "ghosts" e "não te segue de volta"</span>
+          <input type="file" id="file-following" accept=".json,.txt,.csv" />
+        </label>
+      </div>
+      <p class="hint">Os nomes são dados pelo arquivo: se o nome não deixar claro se é "antes" ou "depois", a ordem dos arquivos abaixo conta (o de cima = mais antigo). Dica: baixe um hoje e guarde pra comparar depois.</p>
+
+      <details class="help">
+        <summary>Como conseguir os arquivos oficiais?</summary>
+        <ol>
+          <li>Instagram → <b>Configurações → Central de Contas → Suas informações e permissões → Baixar suas informações</b>.</li>
+          <li>Formato <b>JSON</b>, seção <b>Seguidores e seguindo</b>, solicite o download (chega por e-mail).</li>
+          <li>Os arquivos são <b>followers_1.json</b> (seguidores) e <b>following.json</b> (seguindo).</li>
+          <li>Também aceito .txt/.csv com um nome por linha.</li>
+        </ol>
+      </details>
+    </div>
+
+    <div class="card" id="results" hidden>
+      <h2>2 · Radar</h2>
+      <div class="stats" id="stats"></div>
+      <div class="groups" id="groups"></div>
+      <button class="btn" id="export-btn" disabled>⬇️ Exportar resultados (.csv)</button>
+    </div>
+
+    <p class="note">
+      🔒 <b>Privacidade primeiro:</b> nada é enviado a nenhum servidor — tudo roda no seu navegador, usando <b>apenas os dados que você mesmo</b> baixou da sua conta.
+    </p>
+
+    <p class="footer"><b>© 2026 Senhor Amorim — Daniel Amorim</b> · Todos os direitos reservados · <b>IG RADAR</b></p>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var state = { old: [], cur: [], following: [] };
+
+      function norm(u) { return String(u || '').trim().replace(/^@/, '').toLowerCase(); }
+
+      function collectUsernames(obj, out) {
+        if (!obj || typeof obj !== 'object') return;
+        if (Array.isArray(obj)) {
+          for (var i = 0; i < obj.length; i++) {
+            if (Array.isArray(obj[i] && obj[i].string_list_data)) {
+              for (var j = 0; j < obj[i].string_list_data.length; j++) {
+                var u = norm(obj[i].string_list_data[j] && obj[i].string_list_data[j].value);
+                if (u) out.push(u);
+              }
+            } else collectUsernames(obj[i], out);
+          }
+          return;
+        }
+        if (Array.isArray(obj.string_list_data)) {
+          for (var k = 0; k < obj.string_list_data.length; k++) {
+            var v = norm(obj.string_list_data[k] && obj.string_list_data[k].value);
+            if (v) out.push(v);
+          }
+        }
+        if (Array.isArray(obj.children)) collectUsernames(obj.children, out);
+        if (Array.isArray(obj.relationships_following)) collectUsernames(obj.relationships_following, out);
+      }
+
+      function parseText(text) {
+        var out = [];
+        var lines = (text || '').split(/\r?\n/);
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i].trim();
+          if (!line) continue;
+          var first = line.split(/[,\t;]/)[0];
+          var u = norm(first);
+          if (u) out.push(u);
+        }
+        return out;
+      }
+
+      function parseList(content) {
+        var t = String(content).trim();
+        if (t.charAt(0) === '[' || t.charAt(0) === '{') {
+          var out = [];
+          try { collectUsernames(JSON.parse(content), out); if (out.length) return out; } catch (e) {}
+        }
+        return parseText(content);
+      }
+
+      function setDrop(dropId, labelHtml, count) {
+        var drop = document.getElementById(dropId);
+        drop.classList.add('loaded');
+        drop.querySelector('b').innerHTML = '✅ ' + labelHtml;
+        drop.querySelector('span').textContent = count + (count === 1 ? ' nome' : ' nomes') + ' lidos';
+      }
+
+      function bind(slot, fileId, dropId, labelHtml) {
+        var input = document.getElementById(fileId);
+        var drop = document.getElementById(dropId);
+        input.addEventListener('change', function () {
+          var file = input.files && input.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            state[slot] = parseList(reader.result);
+            setDrop(dropId, labelHtml, state[slot].length);
+            var hasOld = state.old.length, hasNew = state.cur.length;
+            document.getElementById('file-following').disabled = false;
+            document.getElementById('file-old').disabled = hasOld;
+            document.getElementById('file-new').disabled = hasNew;
+            render();
+          };
+          reader.readAsText(file);
+        });
+        ['dragover', 'dragenter'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('drag'); }); });
+        ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('drag'); }); });
+      }
+
+      function render() {
+        var old = new Set(state.old), cur = new Set(state.cur), fw = new Set(state.following);
+        var stopped = state.old.filter(function (u) { return !cur.has(u); });
+        var newbies = state.cur.filter(function (u) { return !old.has(u); });
+
+        document.getElementById('stats').innerHTML = [
+          stat(state.old.length, 'Seguidores (antes)'),
+          stat(state.cur.length, 'Seguidores (hoje)'),
+          stat(stopped.length, 'Pararam de te seguir'),
+          stat(newbies.length, 'Novos seguidores'),
+        ].join('');
+
+        var groups = [
+          group('🚪 Pararam de te seguir', stopped, 'danger'),
+          group('🌟 Novos seguidores', newbies, 'ok'),
+        ];
+
+        if (fw.size > 0) {
+          var ghost = state.cur.filter(function (u) { return !fw.has(u); });
+          var notBack = state.following.filter(function (u) { return !cur.has(u); });
+          groups.push(group('👻 Te seguem e você não segue', ghost, 'warn'));
+          groups.push(group('⚠️ Você segue e não te segue', notBack, 'warn'));
+        }
+
+        document.getElementById('groups').innerHTML = groups.join('');
+        document.getElementById('export-btn').disabled = false;
+      }
+
+      function stat(num, lbl) {
+        return '<div class="stat"><div class="num">' + num + '</div><div class="lbl">' + lbl + '</div></div>';
+      }
+
+      function group(title, list, chipClass) {
+        var html = '<div class="group"><div class="group-head"><b>' + title + '</b>' +
+          '<span class="chip ' + (chipClass || 'ok') + '">' + list.length + '</span></div>';
+        if (list.length) {
+          html += '<ul class="list">';
+          list.slice().sort().forEach(function (u) {
+            html += '<li><span>' + escapeHtml(u) + '</span></li>';
+          });
+          html += '</ul>';
+        }
+        html += '</div>';
+        return html;
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      function csvEscape(s) { return '"' + String(s).replace(/"/g, '""') + '"'; }
+
+      document.getElementById('export-btn').addEventListener('click', function () {
+        var old = new Set(state.old), cur = new Set(state.cur), fw = new Set(state.following);
+        var rows = [['grupo', 'usuario']];
+        state.old.filter(function (u) { return !cur.has(u); }).forEach(function (u) { rows.push(['parou', u]); });
+        state.cur.filter(function (u) { return !old.has(u); }).forEach(function (u) { rows.push(['novo', u]); });
+        if (fw.size) {
+          state.cur.filter(function (u) { return !fw.has(u); }).forEach(function (u) { rows.push(['te_segue_vc_nao', u]); });
+          state.following.filter(function (u) { return !cur.has(u); }).forEach(function (u) { rows.push(['vc_segue_nao_volta', u]); });
+        }
+        var csv = rows.map(function (r) { return r.map(csvEscape).join(','); }).join('\n');
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'ig-radar-resultado.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+
+      bind('old', 'file-old', 'drop-old', 'Seguidores <em>mais antigo</em>');
+      bind('cur', 'file-new', 'drop-new', 'Seguidores <em>atual</em>');
+      bind('following', 'file-following', 'drop-following', 'Seguindo');
+    })();
+  </script>
+</body>
+</html>

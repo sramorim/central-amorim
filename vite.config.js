@@ -20,6 +20,7 @@ export default defineConfig({
         planos: resolve(__dirname, 'planos.html'),
         'minha-conta': resolve(__dirname, 'minha-conta.html'),
         follow: resolve(__dirname, 'follow.html'),
+        radar: resolve(__dirname, 'radar.html'),
       },
     },
   },

@@ -14,6 +14,20 @@ export const projects = [
     buttonStyle: 'primary',
   },
   {
+    id: 'ig-radar',
+    name: 'IG RADAR',
+    description:
+      'Veja quem parou de te seguir, quem chegou novo e quem não te segue de volta no Instagram. Seus dados, processados no seu dispositivo.',
+    category: 'Instagram & Redes',
+    status: 'published',
+    statusLabel: 'Publicado',
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+    subdomain: 'senhoramorim.com.br/radar',
+    url: '/radar',
+    urlLabel: 'Abrir Ferramenta',
+    buttonStyle: 'primary',
+  },
+  {
     id: 'amorim-osint',
     name: 'AMORIM OSINT',
     description:
