@@ -70,30 +70,59 @@
             <section class="account-section">
               <div class="account-section-head">
                 <div>
-                  <h3 class="account-section-title">Configurações</h3>
-                  <p class="account-section-sub">Preferências da conta.</p>
+                  <h3 class="account-section-title">Seus projetos</h3>
+                  <p class="account-section-sub">Ferramentas disponíveis na sua conta.</p>
                 </div>
-                <span class="account-tag account-tag--wip">Área preparada · em desenvolvimento</span>
+                <span class="account-tag">Grátis · no navegador</span>
+              </div>
+
+              <div class="account-tools-grid">
+                <article class="project-card">
+                  <div class="project-card-top">
+                    <div class="project-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6 11 4.6a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></div>
+                    <span class="project-status status-published">Publicado</span>
+                  </div>
+                  <h3 class="project-name">AMORIM FOLLOW</h3>
+                  <span class="project-category">Instagram &amp; Redes</span>
+                  <p class="project-description">Descubra quem não te segue de volta no Instagram. Seus dados, no seu navegador.</p>
+                  <a href="/follow" class="btn btn-primary">Abrir Ferramenta</a>
+                </article>
+
+                <article class="project-card">
+                  <div class="project-card-top">
+                    <div class="project-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+                    <span class="project-status status-published">Publicado</span>
+                  </div>
+                  <h3 class="project-name">IG RADAR</h3>
+                  <span class="project-category">Instagram &amp; Redes</span>
+                  <p class="project-description">Veja quem parou de seguir, novos seguidores e quem não te segue de volta.</p>
+                  <a href="/radar" class="btn btn-primary">Abrir Ferramenta</a>
+                </article>
               </div>
             </section>
 
             <section class="account-section">
               <div class="account-section-head">
                 <div>
-                  <h3 class="account-section-title">Plano</h3>
-                  <p class="account-section-sub">Acesso e limites da plataforma.</p>
+                  <h3 class="account-section-title" id="plan-section-title">Seu plano</h3>
+                  <p class="account-section-sub" id="plan-section-sub">Acesso e benefícios da sua conta.</p>
                 </div>
-                <a class="account-tag account-tag--link" href="/planos">Ver planos</a>
+                <span id="plan-tag"></span>
               </div>
+              <div class="account-plan-box" id="account-plan-box"></div>
             </section>
 
             <section class="account-section">
               <div class="account-section-head">
                 <div>
-                  <h3 class="account-section-title">Segurança</h3>
-                  <p class="account-section-sub">Troca de senha e sessões. Disponibilizado em uma próxima etapa.</p>
+                  <h3 class="account-section-title">Em desenvolvimento</h3>
+                  <p class="account-section-sub">Próximas áreas da Central.</p>
                 </div>
-                <span class="account-tag account-tag--wip">Área preparada · em desenvolvimento</span>
+              </div>
+              <div class="account-roadmap">
+                <span class="account-chip">Configurações da conta</span>
+                <span class="account-chip">Segurança &amp; troca de senha</span>
+                <span class="account-chip">Novas ferramentas</span>
               </div>
             </section>
           </div>
@@ -172,6 +201,23 @@
       document.getElementById('account-plan').querySelector('.plan-pill').textContent = plan;
       document.getElementById('plan-pill').className = `plan-pill ${planClasses[plan] || 'plan-pill--free'}`;
       document.getElementById('account-status').textContent = u.status === 'active' ? 'ativo' : u.status;
+
+      const planTag = document.getElementById('plan-tag');
+      const planBox = document.getElementById('account-plan-box');
+      if (plan === 'PRO') {
+        planTag.innerHTML = '<span class="account-tag account-tag--pro">Vitalício &#10003;</span>';
+        planBox.innerHTML =
+          '<strong>Você já é PRO.</strong><span>Pagamento único confirmado · acesso vitalício a todas as ferramentas liberadas.</span>';
+      } else if (plan === 'ADMIN') {
+        planTag.innerHTML = '<span class="account-tag account-tag--admin">Administrador</span>';
+        planBox.innerHTML =
+          '<strong>Conta administrativa.</strong><span>Você gerencia a Central e tem todos os benefícios do PRO.</span>';
+      } else {
+        planTag.innerHTML = '<a class="account-tag account-tag--link" href="/pix">Ativar PRO · R$ 79</a>';
+        planBox.innerHTML =
+          '<strong>Plano gratuito ativo.</strong><span>As ferramentas já funcionam na sua conta.<br />O PRO destrava tudo que for lançado — pagamento único de R$ 79 via Pix, vitalício.</span>' +
+          '<a class="btn btn-primary" href="/pix">Quero o PRO</a>';
+      }
 
       document.getElementById('logout-btn').addEventListener('click', async () => {
         await apiPost('/api/auth/logout', {});
