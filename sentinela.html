@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AMORIM WHATSAPP — Análise da sua conversa</title>
+  <title>SENTINELA — Análise da sua conversa no WhatsApp</title>
   <meta name="description" content="Analise conversas exportadas do WhatsApp: quem mais fala, palavras e emojis mais usados, horários de pico e calendário de atividade — tudo offline." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -103,7 +103,7 @@
       <a class="back" href="/">← Voltar</a>
     </header>
 
-    <h1>AMORIM <span class="grad">WHATSAPP</span></h1>
+    <h1><span class="grad">SENTINELA</span></h1>
     <p class="tagline">Análise completa de uma conversa exportada do WhatsApp: <b>quem mais fala, emojis e palavras mais usados, horário de pico e calendário de mensagens</b>. Pode ser de conversa 1:1 ou de grupo — tudo é processado <b>dentro do seu dispositivo</b>, nada sai daqui.</p>
 
     <div class="card">
@@ -171,7 +171,7 @@
       Projeto oficial de Sr. Amorim — <a href="/">Central Amorim</a>.
     </p>
 
-    <p class="footer"><b>© 2026 Sr. Amorim — Daniel Amorim</b> · Todos os direitos reservados · <b>AMORIM WHATSAPP</b></p>
+    <p class="footer"><b>© 2026 Sr. Amorim — Daniel Amorim</b> · Todos os direitos reservados · <b>SENTINELA</b></p>
   </div>
 
   <script>
@@ -424,7 +424,7 @@
         var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'amorim-whatsapp.csv';
+        a.download = 'sentinela.csv';
         a.click();
         URL.revokeObjectURL(a.href);
       });

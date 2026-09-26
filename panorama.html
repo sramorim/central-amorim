@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AMORIM ATIVIDADE — Estatísticas dos seus posts no Instagram</title>
+  <title>PANORAMA — Estatísticas dos seus posts no Instagram</title>
   <meta name="description" content="Transforme seus posts do Instagram em estatísticas: calendário de postagem, horários e dias mais ativos, fotos e vídeos — tudo offline, com seus dados oficiais." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -100,7 +100,7 @@
       <a class="back" href="/">← Voltar</a>
     </header>
 
-    <h1>AMORIM <span class="grad">ATIVIDADE</span></h1>
+    <h1><span class="grad">PANORAMA</span></h1>
     <p class="tagline">Seus posts do Instagram viram estatísticas: <b>calendário de postagem, dias e horários mais ativos, fotos, vídeos e média mensal</b>. Importe o <b>posts_1.json</b> dos seus próprios dados oficiais — tudo é processado <b>dentro do seu dispositivo</b>, nada sai daqui.</p>
 
     <div class="card">
@@ -163,7 +163,7 @@
       Projeto oficial de Sr. Amorim — <a href="/">Central Amorim</a>.
     </p>
 
-    <p class="footer"><b>© 2026 Sr. Amorim — Daniel Amorim</b> · Todos os direitos reservados · <b>AMORIM ATIVIDADE</b></p>
+    <p class="footer"><b>© 2026 Sr. Amorim — Daniel Amorim</b> · Todos os direitos reservados · <b>PANORAMA</b></p>
   </div>
 
   <script>
@@ -339,7 +339,7 @@
         var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'amorim-atividade.csv';
+        a.download = 'panorama.csv';
         a.click();
         URL.revokeObjectURL(a.href);
       });

@@ -9,9 +9,20 @@ import { createApp } from './backend/app.js';
 
 const API_PREFIX = '/api/';
 
+// Compat redirects for renamed tool pages.
+const REDIRECTS = {
+  '/facebook': '/sonda',
+  '/atividade': '/panorama',
+  '/whatsapp': '/sentinela',
+};
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const target = REDIRECTS[url.pathname];
+    if (target) {
+      return Response.redirect(url.origin + target, 301);
+    }
 
     // API routes are handled by the auth/access backend.
     if (url.pathname.startsWith(API_PREFIX)) {
