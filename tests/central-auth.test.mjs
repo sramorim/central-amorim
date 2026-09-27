@@ -546,3 +546,37 @@ test('cookie de OAuth state respeita Secure e é HttpOnly/SameSite=Lax', async (
   const off = await call('oauth-insecure', '/api/auth/google/start');
   assert.ok(!off.headers.get('set-cookie').includes('Secure'));
 });
+/* ---------- Diagnóstico do ambiente (admin) ---------- */
+
+test('diagnóstico exige admin e nunca expõe o valor de um segredo', async () => {
+  freshApp('diag', { ADMIN_EMAILS: 'boss@diag.com' });
+
+  const anon = await call('diag', '/api/admin/diagnostics');
+  assert.equal(anon.res.status, 401, 'visitante não pode ver');
+
+  const reg = await register('diag', { name: 'Boss', email: 'boss@diag.com', password: 'senha-admin-123' });
+  const token = sessionTokenFrom(reg.res.headers.get('set-cookie'));
+
+  // Usuário comum, logado: existe, mas não é admin.
+  freshApp('diagUser', { ADMIN_EMAILS: 'outro@diag.com' });
+  const userReg = await register('diagUser', { name: 'Comum', email: 'comum@diag.com', password: 'senha-comum-123' });
+  const userToken = sessionTokenFrom(userReg.res.headers.get('set-cookie'));
+  const nonAdmin = await call('diagUser', '/api/admin/diagnostics', { cookie: `sam_session=${encodeURIComponent(userToken)}` });
+  assert.equal(nonAdmin.res.status, 403, 'usuário comum não pode ver o diagnóstico');
+
+  const ok = await call('diag', '/api/admin/diagnostics', { cookie: `sam_session=${encodeURIComponent(token)}` });
+  assert.equal(ok.res.status, 200);
+  assert.equal(ok.data.secrets.APIFY_API_TOKEN, false, 'sem token deve reportar false');
+  assert.equal(ok.data.config.pixConfigured, false);
+  assert.equal(ok.data.database.users, 1);
+  assert.equal(ok.data.config.adminEmails, 1);
+
+  // O segredo configurado precisa aparecer como true, e o valor jamais pode vazar.
+  const withToken = createApp({ db: apps[handlerName('diag')].db, env: { ...makeEnv(), ADMIN_EMAILS: 'boss@diag.com', APIFY_API_TOKEN: 'apify_api_segredo' } });
+  const res = await withToken.fetch(new Request(`${BASE}/api/admin/diagnostics`, { headers: { cookie: `sam_session=${encodeURIComponent(token)}` } }));
+  const body = await res.json();
+  assert.equal(body.secrets.APIFY_API_TOKEN, true, 'token configurado deve reportar true');
+  const raw = JSON.stringify(body);
+  assert.ok(!raw.includes('apify_api_segredo'), 'o valor do segredo não pode aparecer na resposta');
+  assert.ok(!/"APIFY_API_TOKEN":\s*"[^"]+"/.test(raw), 'segredo deve sair como booleano');
+});

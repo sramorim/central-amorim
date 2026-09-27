@@ -854,6 +854,61 @@ export function createApp({ db, env = {} }) {
     return json({ ok: true, users: rows });
   });
 
+  /* -------- admin: diagnóstico do ambiente -------- */
+  /* Só devolve se cada segredo ESTÁ ou NÃO configurado, nunca o valor. Existe
+     porque "a chave não funciona" tem quatro causas possíveis (segredo não
+     salvo, salvo no Worker errado, salvo na conta errada do Cloudflare, ou
+     nome com typo) e sem isso o dono precisa caçar no painel às cegas. */
+  router.set('GET /api/admin/diagnostics', async (request) => {
+    const check = await adminCheck(request);
+    if (check.error) return check.error;
+
+    const has = (v) => Boolean(String(v || '').trim());
+    const secretNames = [
+      'APIFY_API_TOKEN',
+      'RAPIDAPI_WHATSAPP_KEY',
+      'GOOGLE_CLIENT_ID',
+      'GOOGLE_CLIENT_SECRET',
+      'RESEND_API_KEY',
+    ];
+    const secrets = {};
+    for (const name of secretNames) secrets[name] = has(cfg[name]);
+
+    const count = async (sql) => {
+      try {
+        const row = await db.prepare(sql).first();
+        return row ? Object.values(row)[0] : 0;
+      } catch (err) {
+        return `erro: ${err.message}`;
+      }
+    };
+
+    const missing = secretNames.filter((n) => secrets[n]);
+    return json({
+      ok: true,
+      secrets,
+      /* Lista só o que falta agir agora: chaves de OSINT e e-mail. Google é
+         opcional, então fica fora do "pendente". */
+      pending: missing.filter((n) => n !== 'GOOGLE_CLIENT_ID' && n !== 'GOOGLE_CLIENT_SECRET'),
+      config: {
+        PUBLIC_ORIGIN: cfg.PUBLIC_ORIGIN || '(vazio)',
+        COOKIE_DOMAIN: cfg.COOKIE_DOMAIN || '(vazio)',
+        SHANDON_ORIGIN: cfg.SHANDON_ORIGIN || '(vazio)',
+        APIFY_DAILY_LIMIT: cfg.APIFY_DAILY_LIMIT,
+        PIX_AMOUNT_BRL: cfg.PIX_AMOUNT_BRL,
+        pixConfigured: has(cfg.PIX_KEY),
+        adminEmails: adminEmailSet(cfg).size,
+      },
+      database: {
+        users: await count('SELECT COUNT(*) AS n FROM users'),
+        sessions: await count('SELECT COUNT(*) AS n FROM sessions'),
+        orders: await count('SELECT COUNT(*) AS n FROM orders'),
+        withPro: await count("SELECT COUNT(*) AS n FROM entitlements WHERE plan = 'pro'"),
+      },
+      time: Date.now(),
+    });
+  });
+
   /* -------- google oauth -------- */
   router.set('GET /api/auth/google/start', async (request) => {
     if (!cfg.GOOGLE_CLIENT_ID) {
