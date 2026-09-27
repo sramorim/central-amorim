@@ -81,6 +81,13 @@ function todayUtc() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/* Mensagens do Actor que significam "esse perfil não existe / não é público",
+   e não "a consulta falhou". Sem esta distinção, um perfil inexistente
+   voltava como HTTP 500. */
+function isProfileAbsentMessage(msg) {
+  return /not found|couldn'?t find|could not find|does not exist|isn'?t available|is not available|no such|not available|private|doesn'?t exist/i.test(msg);
+}
+
 /* Mensagem de erro nao pode ir crua para o cliente: a do fetch costuma vir
    com a URL do provedor, o id do Actor e, em erro de autenticacao, trechos do
    proprio token. O detalhamento fica no log do Worker; o usuario ve algo
@@ -455,7 +462,17 @@ export function installShandonOsint(ctx) {
       if (!Array.isArray(items)) items = items && Array.isArray(items.items) ? items.items : [];
       const prof = items.find((i) => i && typeof i === 'object') || null;
       if (!prof) return null;
-      if (prof.error) throw new Error(String(prof.error));
+      if (prof.error) {
+        /* O Actor NAO usa HTTP de erro quando o perfil não existe: ele devolve
+           o item com a mensagem no campo `error` (ex.: "Profile not found").
+           Tratar isso como falha interna transformava uma resposta legitima
+           ("não existe") em HTTP 500, e o chamador não conseguia distinguir
+           erro de API de perfil inexistente. Só é erro de verdade quando a
+           mensagem fala de token, cota, limite ou falha do Actor. */
+        const msg = String(prof.error);
+        if (isProfileAbsentMessage(msg)) return null;
+        throw new Error(msg);
+      }
 
       const posts = (Array.isArray(prof.latestPosts) ? prof.latestPosts : []).map((p) => ({
         url: p.url || null,

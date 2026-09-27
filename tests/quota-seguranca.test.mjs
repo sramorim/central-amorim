@@ -166,3 +166,43 @@ test('toda resposta traz os headers de segurança', async () => {
   assert.ok(csp && csp.includes("object-src 'none'"));
   assert.ok(csp && csp.includes("base-uri 'self'"));
 });
+
+/* ------------------------------------------------------------------ */
+
+test('perfil inexistente do Apify é "não encontrado", não erro interno 500', async () => {
+  freshApp('igAusente', { APIFY_API_TOKEN: 'apify_teste', APIFY_DAILY_LIMIT: '40' });
+
+  // O Actor devolve o item com a mensagem no campo `error` quando o perfil
+  // não existe. Antes disso virava HTTP 500 e o chamador não conseguia
+  // distinguir "não existe" de "a API caiu".
+  const fetchReal = globalThis.fetch;
+  globalThis.fetch = async () => new Response(
+    JSON.stringify([{ error: 'Profile not found or private' }]),
+    { status: 200, headers: { 'content-type': 'application/json' } }
+  );
+  try {
+    const { res, data } = await call('igAusente', '/api/instagram', { method: 'POST', body: { username: 'nao_existe_zzz' } });
+    assert.equal(res.status, 200, 'perfil inexistente não pode ser erro 500');
+    assert.match(JSON.stringify(data), /não encontrado/i);
+    assert.equal(data.data.profile, undefined, 'não pode inventar perfil');
+  } finally {
+    globalThis.fetch = fetchReal;
+  }
+});
+
+test('falha real do Actor continua sendo erro, não "não encontrado"', async () => {
+  freshApp('igErroReal', { APIFY_API_TOKEN: 'apify_teste', APIFY_DAILY_LIMIT: '40' });
+
+  const fetchReal = globalThis.fetch;
+  // Erro de cota/limite do ator não significa perfil inexistente.
+  globalThis.fetch = async () => new Response(
+    JSON.stringify([{ error: 'Actor run failed: monthly usage limit reached' }]),
+    { status: 200, headers: { 'content-type': 'application/json' } }
+  );
+  try {
+    const { res } = await call('igErroReal', '/api/instagram', { method: 'POST', body: { username: 'sr__amorim' } });
+    assert.equal(res.status, 500, 'erro real do ator precisa continuar sendo erro');
+  } finally {
+    globalThis.fetch = fetchReal;
+  }
+});
