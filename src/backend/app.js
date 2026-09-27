@@ -883,13 +883,21 @@ export function createApp({ db, env = {} }) {
       }
     };
 
-    const missing = secretNames.filter((n) => secrets[n]);
+    const missing = secretNames.filter((n) => !secrets[n]);
+    /* Só interessa agora: as duas chaves de OSINT e o e-mail. Google é
+       opcional e não deve aparecer como pendência. */
+    const pending = missing.filter((n) => n !== 'GOOGLE_CLIENT_ID' && n !== 'GOOGLE_CLIENT_SECRET');
     return json({
       ok: true,
       secrets,
-      /* Lista só o que falta agir agora: chaves de OSINT e e-mail. Google é
-         opcional, então fica fora do "pendente". */
-      pending: missing.filter((n) => n !== 'GOOGLE_CLIENT_ID' && n !== 'GOOGLE_CLIENT_SECRET'),
+      pending,
+      hint: {
+        onde: 'Cloudflare > Workers & Pages > central-amorim > Settings > Variables and Secrets',
+        tipo: 'Add do tipo **Secret** (nunca "Text"/var), e clicar em Deploy para ativar',
+        nome: 'Exatamente APIFY_API_TOKEN, sem acento e sem espaço',
+        conta: 'Confira se está na mesma conta do Cloudflare que hospeda o site',
+        alternativa: 'Terminal: npx wrangler secret put APIFY_API_TOKEN (grava direto no Worker, sem erro de nome)',
+      },
       config: {
         PUBLIC_ORIGIN: cfg.PUBLIC_ORIGIN || '(vazio)',
         COOKIE_DOMAIN: cfg.COOKIE_DOMAIN || '(vazio)',

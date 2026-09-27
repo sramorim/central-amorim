@@ -580,3 +580,19 @@ test('diagnóstico exige admin e nunca expõe o valor de um segredo', async () =
   assert.ok(!raw.includes('apify_api_segredo'), 'o valor do segredo não pode aparecer na resposta');
   assert.ok(!/"APIFY_API_TOKEN":\s*"[^"]+"/.test(raw), 'segredo deve sair como booleano');
 });
+
+test('diagnóstico lista como pendente o que falta, e a dica fica no response', async () => {
+  freshApp('diag3', { ADMIN_EMAILS: 'boss@diag3.com' });
+  const reg = await register('diag3', { name: 'Boss', email: 'boss@diag3.com', password: 'senha-admin-123' });
+  const token = sessionTokenFrom(reg.res.headers.get('set-cookie'));
+  const { data } = await call('diag3', '/api/admin/diagnostics', { cookie: `sam_session=${encodeURIComponent(token)}` });
+
+  // Nada configurado: as duas chaves de OSINT e o e-mail precisam aparecer.
+  assert.ok(data.pending.includes('APIFY_API_TOKEN'), 'token do Apify ausente deve ser pendente');
+  assert.ok(data.pending.includes('RAPIDAPI_WHATSAPP_KEY'), 'chave do WhatsApp ausente deve ser pendente');
+  assert.ok(data.pending.includes('RESEND_API_KEY'), 'e-mail ausente deve ser pendente');
+  // Google é opcional: nunca entra na lista de pendências.
+  assert.ok(!data.pending.includes('GOOGLE_CLIENT_ID'), 'Google é opcional');
+  assert.match(data.hint.onde, /central-amorim/);
+  assert.match(data.hint.nome, /APIFY_API_TOKEN/);
+});
