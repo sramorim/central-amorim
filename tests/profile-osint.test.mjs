@@ -87,6 +87,22 @@ test('POST /api/search/username (alias do painel osint) funciona', async () => {
   assert.ok(ok.data.data.results.some((r) => r.platform === 'X / Twitter'));
 });
 
+/* Regressão: o Instagram bloqueia chamada de datacenter, a sonda falhava e o
+   card sumia da lista — o usuário via "perfil não encontrado" para um perfil
+   público que existia. Agora o card sempre aparece, com o aviso de que a
+   confirmação é manual. */
+test('Instagram sempre aparece no resultado, mesmo bloqueando a consulta', async () => {
+  const ok = await call('/api/search', { type: 'username', query: 'sr__amorim' });
+  assert.equal(ok.status, 200);
+  const ig = ok.data.data.results.find((r) => r.platform === 'Instagram');
+  assert.ok(ig, 'Instagram não pode sumir da lista');
+  assert.equal(ig.username, 'sr__amorim');
+  assert.equal(ig.exists, true);
+  assert.equal(ig.status, 'possible');
+  assert.equal(ig.url, 'https://www.instagram.com/sr__amorim/');
+  assert.match(ig.extra.nota, /bloqueia consultas automáticas/i);
+});
+
 test('POST /api/search modo name monta links de busca por nome', async () => {
   const ok = await call('/api/search', { type: 'name', query: 'Maria da Silva' });
   assert.equal(ok.status, 200);

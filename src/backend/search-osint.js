@@ -120,11 +120,14 @@ const PLATFORMS = [
     } },
   { id: 'instagram', name: 'Instagram', icon: 'instagram', color: '#E4405F',
     url: (u) => `https://www.instagram.com/${u}/`,
-    detect: (res, body) => {
-      const low = (body || '').toLowerCase();
-      if (low.includes('instagram.com/' + u.toLowerCase() + '/') && low.includes('og:description')) return 'found';
-      return res.status === 404 ? 'not_found' : 'possible';
-    } },
+    // Instagram bloqueia chamada de datacenter: responde 200 sem corpo ou
+    // derruba a conexão, então a checagem por HTTP não confirma nada — e o
+    // `catch` da sonda descartava o card em silêncio, fazendo o perfil
+    // parecer "não encontrado". Agora entra no mesmo grupo de Facebook, X e
+    // LinkedIn: mostra o link e a pessoa confirma no site original. Dados
+    // profundos ficam no /api/instagram (Apify).
+    bloqueiaRobos: true,
+    nota: 'O Instagram bloqueia consultas automáticas — abra o link para confirmar no site original.' },
   { id: 'pinterest', name: 'Pinterest', icon: 'pinterest', color: '#E60023',
     url: (u) => `https://pinterest.com/${esc(u)}/`, detect: (res) => (res.status === 404 ? 'not_found' : 'found') },
   { id: 'behance', name: 'Behance', icon: 'behance', color: '#1769FF',
@@ -301,6 +304,17 @@ async function enumUsername(u) {
   for (const p of PLATFORMS) {
     if (seen.has(p.url(clean))) continue;
     seen.set(p.url(clean), true);
+
+    /* Rede que bloqueia chamada automatizada: não vale gastar uma subrequest
+       para receber uma resposta que não confirma nada. O card entra direto
+       como "confirme no site" — antes ele simplesmente sumia da lista. */
+    if (p.bloqueiaRobos) {
+      const r = baseResult(p, clean, 'possible', p.url(clean));
+      if (p.nota) r.extra.nota = p.nota;
+      results.push(r);
+      continue;
+    }
+
     tasks.push(
       (async () => {
         const url = p.url(clean);

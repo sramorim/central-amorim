@@ -143,12 +143,12 @@ export const projects = [
 export const socialLinks = [
   {
     name: 'Instagram',
-    // TODO(substituir apenas quando houver): URL oficial/pessoal do Instagram do Sr. Amorim
-    url: 'https://instagram.com/',
+    // Perfil oficial do Sr. Amorim.
+    url: 'https://instagram.com/sr__amorim',
     icon: 'instagram',
     label: 'Siga no Instagram',
     color: 'instagram',
-    updatedAt: '2026-09-25',
+    updatedAt: '2026-09-27',
   },
   {
     name: 'WhatsApp',
