@@ -215,6 +215,15 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   count INTEGER NOT NULL,
   window_start INTEGER NOT NULL
 );
+/* Cota global de chamadas pagas (Apify). O contador antigo vivia na memoria
+   do isolate, entao um restart ou um outro datacenter do Cloudflare ja zerava
+   a contagem e o limite diario nunca era respeitado de verdade. Aqui o consumo
+   fica no D1, compartilhado por todos os isolates, e o proprio banco impede
+   que passe do teto. */
+CREATE TABLE IF NOT EXISTS paid_quota (
+  day TEXT PRIMARY KEY,
+  used INTEGER NOT NULL DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS orders (
   id TEXT PRIMARY KEY,
   code TEXT NOT NULL UNIQUE,
@@ -251,6 +260,20 @@ async function ensureSchema(db) {
 /* Request helpers                                                     */
 /* ------------------------------------------------------------------ */
 
+/* Headers de segurança aplicados a toda resposta JSON e HTML.
+   O site nao usa CDN de terceiros nem script inline com dados do usuario, entao
+   uma CSP restritiva nao quebra nada e fecha XSS e clickjacking. */
+const SECURITY_HEADERS = {
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'permissions-policy': 'geolocation=(), microphone=(), camera=(), interest-cohort=()',
+  'content-security-policy':
+    "default-src 'self'; img-src 'self' data: https:; style-src 'self' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com data:; script-src 'self'; connect-src 'self' https://senhoramorim.com.br https://api.apify.com; " +
+    "base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'",
+};
+
 function json(data, status = 200, headers = {}) {
   if (typeof data === 'object' && data !== null) {
     // Keep every error response consistent (ok:false) unless a caller sets ok explicitly.
@@ -258,14 +281,14 @@ function json(data, status = 200, headers = {}) {
   }
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers },
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS, ...headers },
   });
 }
 
 function html(data, status = 200, headers = {}) {
   return new Response(data, {
     status,
-    headers: { 'content-type': 'text/html; charset=utf-8', ...headers },
+    headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS, ...headers },
   });
 }
 
@@ -542,7 +565,7 @@ export function createApp({ db, env = {} }) {
   const router = new Map();
 
   /* -------- ferramentas do Shandon no Workers (sem dormir) -------- */
-  installShandonOsint({ router, json, readBody, rateLimit, cfg, corsFor: (request) => corsFor(request, cfg) });
+  installShandonOsint({ router, json, readBody, rateLimit, db, cfg, corsFor: (request) => corsFor(request, cfg) });
 
   /* -------- buscador de pessoa ("Localizar Pessoa") -------- */
   installSearchOsint({ router, json, readBody, rateLimit, cfg, corsFor: (request) => corsFor(request, cfg) });

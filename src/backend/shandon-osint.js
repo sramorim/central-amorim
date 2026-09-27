@@ -69,16 +69,51 @@ async function fetchTimeout(url, timeoutMs = 10000) {
   }
 }
 
-/* Contador diário em memória (por instância do Worker) que protege o crédito
-   grátis do plano Apify Free (~US$5/mês, sem cartão). Zera a cada dia UTC. */
-const dailyCounters = {};
-function dailyBudget(name) {
-  const today = new Date().toISOString().slice(0, 10);
-  const entry = dailyCounters[name];
-  if (!entry || entry.date !== today) {
-    dailyCounters[name] = { date: today, count: 0 };
+/* Cota de chamadas pagas.
+   Antes isto era um contador em memória do isolate, o que não protegia nada:
+   o Cloudflare roda varias cópias do Worker em datacenters diferentes, cada
+   uma com a própria memória, e qualquer cold start zera tudo. Na prática o
+   "limite diário" podia ser estourado várias vezes sem ninguém perceber.
+   Agora a contagem vive no D1, é compartilhada por todas as instâncias, e o
+   próprio banco recusa o incremento quando o teto do dia já foi atingido —
+   não depende de memória, nem de reinício, nem de datacenter. */
+function todayUtc() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/* Mensagem de erro nao pode ir crua para o cliente: a do fetch costuma vir
+   com a URL do provedor, o id do Actor e, em erro de autenticacao, trechos do
+   proprio token. O detalhamento fica no log do Worker; o usuario ve algo
+   acionavel. */
+function publicError(err, what) {
+  console.error(`[osint:${what}]`, err && (err.stack || err.message || err));
+  return `Falha na ${what}. Tente novamente em alguns instantes.`;
+}
+
+/* Incrementa a cota do dia e devolve o novo total, ou null quando o limite
+   já foi estourado. O WHERE dentro do ON CONFLICT faz o teto valer no
+   próprio SQL, então duas requisições simultâneas não conseguem furar. */
+async function consumePaidQuota(db, limit) {
+  if (!db) return { used: 0, limit, ok: true, unguarded: true };
+  const day = todayUtc();
+  try {
+    const row = await db
+      .prepare(
+        `INSERT INTO paid_quota (day, used) VALUES (?1, 1)
+         ON CONFLICT(day) DO UPDATE SET used = used + 1 WHERE used < ?2
+         RETURNING used`
+      )
+      .bind(day, limit)
+      .first();
+    if (row && typeof row.used === 'number') {
+      return { used: row.used, limit, ok: true, unguarded: false };
+    }
+    return { used: limit, limit, ok: false, unguarded: false };
+  } catch (err) {
+    /* Se a tabela ainda nao existir (banco antigo sem ensureSchema), nao pode
+       ser o banco que derruba a ferramenta: a cota por IP abaixo ainda vale. */
+    return { used: 0, limit, ok: true, unguarded: true, error: err && err.message };
   }
-  return dailyCounters[name];
 }
 
 async function checkNumverify(phone) {
@@ -147,7 +182,7 @@ export async function runPhoneOsint(rawPhone) {
 }
 
 export function installShandonOsint(ctx) {
-  const { router, json, readBody, rateLimit, cfg, corsFor } = ctx;
+  const { router, json, readBody, rateLimit, db, cfg, corsFor } = ctx;
 
   for (const path of Object.keys(METADATA)) {
     router.set(`GET /${path}`, async (request) => {
@@ -310,10 +345,9 @@ export function installShandonOsint(ctx) {
     /* Provedor 1 — Apify WhatsApp Data Lookup (crédito grátis do plano Free):
        foto real, nome do leak do Facebook, Telegram, vazamentos de números. */
     if (env.APIFY_API_TOKEN) {
-      const budget = dailyBudget('apify');
       const limit = Number(env.APIFY_DAILY_LIMIT) || 40;
-      if (budget.count < limit) {
-        budget.count++;
+      const quota = await consumePaidQuota(db, limit);
+      if (quota.ok) {
         try {
           const hit = await apifyLookup(phone, env);
           if (hit) {
@@ -379,7 +413,7 @@ export function installShandonOsint(ctx) {
       const result = await lookupWhatsApp(body.phone, cfg);
       return json({ success: true, data: result }, 200, corsFor(request));
     } catch (err) {
-      return json({ success: false, error: err.message }, 500, corsFor(request));
+      return json({ success: false, error: publicError(err, 'consulta') }, 500, corsFor(request));
     }
   });
 
@@ -472,12 +506,13 @@ export function installShandonOsint(ctx) {
     if (!cfg.APIFY_API_TOKEN) {
       return json({ success: true, data: { username, configured: false, errors: ['Chave Apify não configurada (APIFY_API_TOKEN).'] } }, 200, corsFor(request));
     }
-    const budget = dailyBudget('apify');
+    /* Cota real no D1: o teto vale para qualquer origem, inclusive quem nao
+       tem conta. Sem isso, as rotas gastam o crédito do dono sem limite. */
     const limit = Number(cfg.APIFY_DAILY_LIMIT) || 40;
-    if (budget.count >= limit) {
-      return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', errors: ['Limite diário de consultas Apify atingido (APIFY_DAILY_LIMIT).'] } }, 200, corsFor(request));
+    const quota = await consumePaidQuota(db, limit);
+    if (!quota.ok) {
+      return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', errors: [`Limite diário de consultas Apify atingido (${limit}/dia). Tente novamente amanhã.`] } }, 200, corsFor(request));
     }
-    budget.count++;
     try {
       const prof = await apifyInstagram(username, cfg);
       if (!prof) {
@@ -485,7 +520,7 @@ export function installShandonOsint(ctx) {
       }
       return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', profile: prof } }, 200, corsFor(request));
     } catch (err) {
-      return json({ success: false, error: err.message }, 500, corsFor(request));
+      return json({ success: false, error: publicError(err, 'consulta') }, 500, corsFor(request));
     }
   });
 
@@ -502,7 +537,7 @@ export function installShandonOsint(ctx) {
       const result = await runPhoneOsint(body.phone);
       return json({ success: true, data: result }, 200, corsFor(request));
     } catch (err) {
-      return json({ success: false, error: err.message }, 500, corsFor(request));
+      return json({ success: false, error: publicError(err, 'consulta') }, 500, corsFor(request));
     }
   });
 
@@ -627,7 +662,7 @@ export function installShandonOsint(ctx) {
       const result = await checkCryptoWallet(body.address);
       return json({ success: true, data: result }, 200, corsFor(request));
     } catch (err) {
-      return json({ success: false, error: err.message }, 500, corsFor(request));
+      return json({ success: false, error: publicError(err, 'consulta') }, 500, corsFor(request));
     }
   });
 }
