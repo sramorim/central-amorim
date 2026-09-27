@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { socialLinks } from '../src/js/data.js';
+import { socialLinks, projects, categories, platformLabels } from '../src/js/data.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -118,5 +118,60 @@ test('.env.example documenta as variáveis de produção', () => {
   const env = read('.env.example');
   for (const key of ['PUBLIC_ORIGIN', 'COOKIE_DOMAIN', 'COOKIE_SECURE', 'ADMIN_EMAILS', 'GOOGLE_CLIENT_ID', 'RESEND_API_KEY']) {
     assert.match(env, new RegExp(key), `.env.example deve documentar ${key}`);
+  }
+});
+/* ---------- Catálogo: taxonomia e clareza dos cards ---------- */
+
+test('todo projeto pertence a um grupo da taxonomia', () => {
+  const ids = categories.map((c) => c.id);
+  assert.ok(ids.length > 0, 'a taxonomia não pode estar vazia');
+  assert.equal(new Set(ids).size, ids.length, 'ids de categoria duplicados');
+  for (const p of projects) {
+    assert.ok(p.group, `${p.name} precisa declarar group`);
+    assert.ok(ids.includes(p.group), `${p.name} tem group "${p.group}" fora da taxonomia`);
+    assert.equal(typeof p.category, 'string', `${p.name} precisa do rótulo visível`);
+  }
+});
+
+test('todo projeto tem resumo curto e descrição', () => {
+  for (const p of projects) {
+    assert.ok(p.summary, `${p.name} precisa de summary`);
+    assert.ok(p.description, `${p.name} precisa de description`);
+    assert.ok(p.summary.length <= 90, `${p.name}: summary deve ser curto (1 linha)`);
+    assert.ok(p.summary.length < p.description.length, `${p.name}: summary deve ser menor que a descrição`);
+  }
+});
+
+test('nenhum projeto aparece em dois grupos (filtros não duplicam)', () => {
+  for (const c of categories) {
+    const list = projects.filter((p) => p.group === c.id);
+    assert.equal(new Set(list.map((p) => p.id)).size, list.length, `duplicado em ${c.label}`);
+  }
+  // Toda ferramenta cai em exatamente um grupo e nenhum grupo some do catálogo.
+  const total = categories.reduce((n, c) => n + projects.filter((p) => p.group === c.id).length, 0);
+  assert.equal(total, projects.length, 'toda ferramenta deve estar em um grupo');
+});
+
+test('plataformas declaradas são rótulos conhecidos', () => {
+  for (const p of projects) {
+    assert.ok(Array.isArray(p.platforms) && p.platforms.length, `${p.name} precisa de platforms`);
+    for (const id of p.platforms) {
+      assert.ok(platformLabels[id], `plataforma "${id}" de ${p.name} não tem rótulo`);
+    }
+  }
+});
+
+test('ids e nomes de projeto são únicos', () => {
+  assert.equal(new Set(projects.map((p) => p.id)).size, projects.length, 'ids duplicados');
+  assert.equal(new Set(projects.map((p) => p.name)).size, projects.length, 'nomes duplicados');
+});
+
+test('nenhuma ferramenta éplaceholder de link vazio', () => {
+  for (const p of projects) {
+    assert.ok(p.url && p.url !== '#', `${p.name} sem url`);
+    assert.ok(p.urlLabel, `${p.name} sem urlLabel`);
+  }
+  for (const s of socialLinks) {
+    assert.doesNotMatch(s.url, /wa\.me\/$/, `${s.name} aponta para link sem número`);
   }
 });

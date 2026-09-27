@@ -28,6 +28,7 @@ function renderProjects() {
       ${p.featured ? '<span class="project-pin">Principal</span>' : ''}
       <h3 class="project-name">${p.name}</h3>
       <span class="project-category">${p.category}</span>
+      <p class="project-summary">${p.summary || ''}</p>
       <p class="project-description">${p.description}</p>
       <a href="${p.url}" class="btn btn-${p.buttonStyle}" target="_blank" rel="noopener noreferrer">
         ${p.urlLabel}

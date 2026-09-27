@@ -720,6 +720,15 @@ button { cursor: pointer; font: inherit; }
   letter-spacing: 0.1em;
 }
 
+/* Resumo de uma linha: diz o que a ferramenta faz antes do texto completo,
+   para quem só quer saber "isso é o que eu quero" sem ler tudo. */
+.project-summary {
+  color: var(--text);
+  font-size: 0.9375rem;
+  font-weight: 550;
+  line-height: 1.55;
+}
+
 .project-description {
   color: var(--text-secondary);
   font-size: 0.875rem;
