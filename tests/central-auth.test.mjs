@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { createApp } from '../src/backend/app.js';
 import { createLocalDb } from '../scripts/local-db.js';
 
-const BASE = 'https://central.test';
+const BASE = 'https://central.senhoramim.com.br';
 
 let apps = {};
 
@@ -38,12 +38,12 @@ function freshApp(name, envOverrides = {}) {
   return { app, db, env };
 }
 
-async function call(name, path, { method = 'GET', body, cookie, origin } = {}) {
+async function call(name, path, { method = 'GET', body, cookie, origin, base = BASE } = {}) {
   const { app } = apps[handlerName(name)];
   const headers = {};
   if (cookie) headers['cookie'] = cookie;
   if (origin) headers['origin'] = origin;
-  const req = new Request(`${BASE}${path}`, {
+  const req = new Request(`${base}${path}`, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -196,6 +196,82 @@ test('mutação com Origin não permitido é bloqueada', async () => {
     origin: 'https://evil.example',
   });
   assert.equal(res.status, 403);
+});
+
+/* Regressão: o app rodando em um host fora de PUBLIC_ORIGIN (ex.: o
+   endereço *.workers.dev, ou www vs. sem-www) recebia 403 em todo POST de
+   login/cadastro e ficava impossível criar conta. */
+test('mutação same-origin funciona mesmo fora de PUBLIC_ORIGIN', async () => {
+  freshApp('host');
+  const { res, data } = await call('host', '/api/auth/register', {
+    method: 'POST',
+    body: { name: 'Dona', email: 'dona@exemplo.com', password: 'senha-segura-123' },
+    origin: 'https://central-amorim.workers.dev',
+    base: 'https://central-amorim.workers.dev',
+  });
+  assert.equal(res.status, 201, 'registro não deve ser bloqueado no próprio host');
+  assert.equal(data.user.email, 'dona@exemplo.com');
+});
+
+test('login funciona em host fora do domínio do cookie (sessão persiste)', async () => {
+  freshApp('host2');
+  const reg = await call('host2', '/api/auth/register', {
+    method: 'POST',
+    body: { name: 'Dona', email: 'dona2@exemplo.com', password: 'senha-segura-123' },
+    base: 'https://app.workers.dev',
+  });
+  assert.equal(reg.res.status, 201);
+  const setCookie = reg.res.headers.get('set-cookie') || '';
+  assert.doesNotMatch(setCookie, /Domain=/, 'não enviar Domain fora do domínio configurado');
+  const token = sessionTokenFrom(setCookie);
+  const me = await call('host2', '/api/auth/me', {
+    cookie: `sam_session=${encodeURIComponent(token)}`,
+    base: 'https://app.workers.dev',
+  });
+  assert.equal(me.res.status, 200, 'sessão deve persistir no host alternativo');
+  assert.equal(me.data.user.email, 'dona2@exemplo.com');
+});
+
+test('ALLOWED_ORIGINS amplia as origens aceitas', async () => {
+  freshApp('extra', { ALLOWED_ORIGINS: 'https://app.amorim.app' });
+  const { res } = await call('extra', '/api/auth/register', {
+    method: 'POST',
+    body: { name: 'Dona', email: 'dona3@exemplo.com', password: 'senha-segura-123' },
+    origin: 'https://app.amorim.app',
+  });
+  assert.equal(res.status, 201);
+});
+
+test('admin regainido por e-mail na lista mesmo com plano antigo', async () => {
+  freshApp('admin2');
+  const reg = await call('admin2', '/api/auth/register', {
+    method: 'POST',
+    body: { name: 'Chefe', email: 'chefe@central.com', password: 'senha-segura-123' },
+  });
+  assert.equal(reg.res.status, 201);
+  assert.equal(reg.data.user.plan, 'FREE');
+  const token = sessionTokenFrom(reg.res.headers.get('set-cookie'));
+  const cookie = `sam_session=${encodeURIComponent(token)}`;
+
+  const { db } = apps[handlerName('admin2')];
+  const user = await db.prepare('SELECT id FROM users WHERE email = ?').bind('chefe@central.com').first();
+  await db.prepare("UPDATE entitlements SET plan = 'free' WHERE user_id = ?").bind(user.id).run();
+
+  // O dono adiciona o e-mail em ADMIN_EMAILS depois do cadastro. Em produção
+  // o Worker recria o app a cada request, então o novo cfg já enxerga a lista.
+  const app = createApp({ db, env: { ...makeEnv(), ADMIN_EMAILS: 'chefe@central.com' } });
+  const callNew = async (path) => {
+    const req = new Request(`${BASE}${path}`, { headers: { cookie } });
+    const res = await app.fetch(req);
+    return { res, data: res.headers.get('content-type')?.includes('json') ? await res.json() : null };
+  };
+
+  const me = await callNew('/api/auth/me');
+  assert.equal(me.data.user.plan, 'ADMIN', 'e-mail em ADMIN_EMAILS deve conceder admin');
+
+  const users = await callNew('/api/admin/users');
+  assert.equal(users.res.status, 200, 'painel admin deve destravar');
+  assert.equal(users.data.users.length, 1);
 });
 
 test('rate limit bloqueia tentativas sucessivas de login', async () => {

@@ -294,7 +294,26 @@ function getCookies(request) {
   return out;
 }
 
-function makeSessionCookie(token, env, now = Date.now()) {
+/* O atributo Domain só pode ser enviado quando o host da requisição realmente
+   pertence ao domínio configurado. Caso contrário o navegador descarta o
+   cookie e o login "funciona" mas a sessão nunca persiste (ex.: app servido em
+   workers.dev com COOKIE_DOMAIN apontando para o domínio próprio). */
+function cookieDomainFor(request, env) {
+  const configured = String(env.COOKIE_DOMAIN || '').trim();
+  if (!configured) return '';
+  const bare = configured.replace(/^\./, '').toLowerCase();
+  if (!bare) return '';
+  let host = '';
+  try {
+    host = new URL(request.url).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+  if (host === bare || host.endsWith(`.${bare}`)) return configured;
+  return '';
+}
+
+function makeSessionCookie(token, env, now = Date.now(), request = null) {
   const parts = [
     `sam_session=${encodeURIComponent(token)}`,
     'Path=/',
@@ -302,16 +321,18 @@ function makeSessionCookie(token, env, now = Date.now()) {
     'SameSite=Lax',
   ];
   if (env.COOKIE_SECURE !== 'false') parts.push('Secure');
-  if (env.COOKIE_DOMAIN) parts.push(`Domain=${env.COOKIE_DOMAIN}`);
+  const domain = request ? cookieDomainFor(request, env) : String(env.COOKIE_DOMAIN || '').trim();
+  if (domain) parts.push(`Domain=${domain}`);
   parts.push(`Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`);
   parts.push(`Expires=${new Date(now + SESSION_TTL_MS).toUTCString()}`);
   return parts.join('; ');
 }
 
-function clearSessionCookie(env) {
+function clearSessionCookie(env, request = null) {
   const parts = ['sam_session=; Path=/', 'HttpOnly', 'SameSite=Lax', 'Max-Age=0'];
   if (env.COOKIE_SECURE !== 'false') parts.push('Secure');
-  if (env.COOKIE_DOMAIN) parts.push(`Domain=${env.COOKIE_DOMAIN}`);
+  const domain = request ? cookieDomainFor(request, env) : String(env.COOKIE_DOMAIN || '').trim();
+  if (domain) parts.push(`Domain=${domain}`);
   return parts.join('; ');
 }
 
@@ -328,21 +349,45 @@ function isMutating(method) {
   return !['GET', 'HEAD', 'OPTIONS'].includes(method);
 }
 
+function normalizeOrigin(value) {
+  return String(value || '').trim().replace(/\/+$/, '');
+}
+
+/* Origins aceitos para CORS/CSRF: PUBLIC_ORIGIN, SHANDON_ORIGIN e a lista
+   extra ALLOWED_ORIGINS (vírgula). O próprio host da requisição é sempre
+   aceito — sem isso, o app em `workers.dev` (ou em qualquer outro host)
+   recebia 403 em todo POST de login/cadastro. */
+function allowedOrigins(env) {
+  const extra = String(env.ALLOWED_ORIGINS || '').split(',');
+  return new Set([env.PUBLIC_ORIGIN, env.SHANDON_ORIGIN, ...extra].map(normalizeOrigin).filter(Boolean));
+}
+
+function isSameOrigin(request, origin) {
+  try {
+    return normalizeOrigin(origin) === normalizeOrigin(new URL(request.url).origin);
+  } catch {
+    return false;
+  }
+}
+
 function originAllowed(request, env) {
   const origin = request.headers.get('Origin');
   if (!origin) return true; // same-site / non-browser
-  const allowed = new Set([env.PUBLIC_ORIGIN, env.SHANDON_ORIGIN].filter(Boolean));
-  if (env.ALLOW_NULL_ORIGIN === '1') allowed.add('null');
-  return allowed.has(origin);
+  if (origin === 'null') return env.ALLOW_NULL_ORIGIN === '1';
+  if (isSameOrigin(request, origin)) return true;
+  return allowedOrigins(env).has(normalizeOrigin(origin));
 }
 
 /* CORS para o app do SHANDON ELITE consumir as ferramentas hospedadas aqui. */
 function corsFor(request, env) {
   const origin = request.headers.get('Origin');
   if (!origin) return {};
-  const allowed = new Set([env.PUBLIC_ORIGIN, env.SHANDON_ORIGIN].filter(Boolean));
-  if (env.ALLOW_NULL_ORIGIN === '1') allowed.add('null');
-  if (!allowed.has(origin)) return {};
+  const allowed = allowedOrigins(env);
+  if (origin === 'null') {
+    if (env.ALLOW_NULL_ORIGIN !== '1') return {};
+  } else if (!allowed.has(normalizeOrigin(origin)) && !isSameOrigin(request, origin)) {
+    return {};
+  }
   return {
     'access-control-allow-origin': origin,
     'access-control-allow-methods': 'GET, POST, OPTIONS',
@@ -426,16 +471,33 @@ async function hasProOrder(db, email) {
   return db.prepare("SELECT id FROM orders WHERE lower(email) = lower(?) AND status = 'activated' AND plan = 'pro' LIMIT 1").bind(email).first();
 }
 
+function adminEmailSet(env) {
+  return new Set(String(env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean));
+}
+
+/* Admin é derivado do e-mail SEMPRE (fonte da verdade = ADMIN_EMAILS), e não
+   só do plano já gravado. Sem isso, um e-mail adicionado à lista depois do
+   cadastro nunca ganhava acesso ao /admin. */
+function isAdminUser(user, ent, env) {
+  if (ent && ent.plan === 'admin') return true;
+  const email = String((user && user.email) || '').trim().toLowerCase();
+  return Boolean(email) && adminEmailSet(env).has(email);
+}
+
 async function ensureEntitlement(db, userId, env) {
   let ent = await getEntitlement(db, userId);
   const user = await db.prepare('SELECT email FROM users WHERE id = ?').bind(userId).first();
   const proOrder = await hasProOrder(db, user ? user.email : null);
+  const isAdmin = isAdminUser(user, ent, env);
   if (!ent) {
     const now = Date.now();
-    const adminEmails = (env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
-    const isAdmin = user && adminEmails.includes(user.email.toLowerCase());
     const plan = isAdmin ? 'admin' : proOrder ? 'pro' : 'free';
     await db.prepare('INSERT OR IGNORE INTO entitlements (user_id, plan, status, started_at, provider) VALUES (?, ?, ?, ?, ?)').bind(userId, plan, 'active', now, isAdmin ? 'central' : proOrder ? 'pix' : 'central').run();
+    ent = await getEntitlement(db, userId);
+  } else if (isAdmin && ent.plan !== 'admin') {
+    // Promoção/recuperação automática de admin (e-mail entrou na lista depois).
+    const now = Date.now();
+    await db.prepare("UPDATE entitlements SET plan = 'admin', status = 'active', started_at = ?, expires_at = NULL, provider = 'central' WHERE user_id = ?").bind(now, userId).run();
     ent = await getEntitlement(db, userId);
   } else if (proOrder && ent.plan === 'free') {
     const now = Date.now();
@@ -467,6 +529,8 @@ export function createApp({ db, env = {} }) {
     PIX_AMOUNT_BRL: env.PIX_AMOUNT_BRL || '9.99',
     WA_NUMBER: env.WA_NUMBER || '',
     SHANDON_ORIGIN: env.SHANDON_ORIGIN || 'https://elite.senhoramorim.com.br',
+    ALLOWED_ORIGINS: env.ALLOWED_ORIGINS || '',
+    ALLOW_NULL_ORIGIN: env.ALLOW_NULL_ORIGIN || '',
     /* --- Chaves/limites das ferramentas OSINT (SHANDON ELITE) --- */
     /* Secrets (RAPIDAPI_WHATSAPP_KEY, APIFY_API_TOKEN) chegam via env do Worker
        e são repassados aqui; NUNCA declarar como var no wrangler.toml. */
@@ -535,7 +599,7 @@ export function createApp({ db, env = {} }) {
     await db.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(token, id, now, now + SESSION_TTL_MS).run();
 
     const user = await db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').bind(id).first();
-    return json({ ok: true, user: publicMe(user, ent) }, 201, { 'set-cookie': makeSessionCookie(token, cfg, now) });
+    return json({ ok: true, user: publicMe(user, ent) }, 201, { 'set-cookie': makeSessionCookie(token, cfg, now, request) });
   });
 
   /* -------- login -------- */
@@ -557,11 +621,10 @@ export function createApp({ db, env = {} }) {
     const token = randomHex(TOKEN_BYTES);
     await db.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(token, user.id, now, now + SESSION_TTL_MS).run();
 
-    let ent = await getEntitlement(db, user.id);
-    if (!ent) ent = await ensureEntitlement(db, user.id, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
+    const ent = await ensureEntitlement(db, user.id, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
 
     const pub = await db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').bind(user.id).first();
-    return json({ ok: true, user: publicMe(pub, ent) }, 200, { 'set-cookie': makeSessionCookie(token, cfg, now) });
+    return json({ ok: true, user: publicMe(pub, ent) }, 200, { 'set-cookie': makeSessionCookie(token, cfg, now, request) });
   });
 
   /* -------- logout -------- */
@@ -572,7 +635,7 @@ export function createApp({ db, env = {} }) {
     if (token) {
       await db.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
     }
-    return json({ ok: true }, 200, { 'set-cookie': clearSessionCookie(cfg) });
+    return json({ ok: true }, 200, { 'set-cookie': clearSessionCookie(cfg, request) });
   });
 
   /* -------- me -------- */
@@ -581,8 +644,7 @@ export function createApp({ db, env = {} }) {
     const cookies = getCookies(request);
     const session = await getSession(db, cookies.sam_session);
     if (!session) return json({ ok: false, error: 'Não autenticado.', authenticated: false }, 401);
-    let ent = await getEntitlement(db, session.userId);
-    if (!ent) ent = await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
+    const ent = await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
     return json({ ok: true, authenticated: true, user: publicMe(session.user, ent) });
   });
 
@@ -654,7 +716,7 @@ export function createApp({ db, env = {} }) {
     let plan = null;
     let planCode = 'VISITOR';
     if (session) {
-      const ent = await getEntitlement(db, session.userId) || (await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS }));
+      const ent = await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
       const resolved = resolvePlan(ent);
       if (resolved) {
         plan = resolved;
@@ -742,8 +804,8 @@ export function createApp({ db, env = {} }) {
     const cookies = getCookies(request);
     const session = await getSession(db, cookies.sam_session);
     if (!session) return { error: json({ ok: false, error: 'Não autenticado.' }, 401) };
-    const ent = (await getEntitlement(db, session.userId)) || (await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS }));
-    if (ent.plan !== 'admin') return { error: json({ ok: false, error: 'Acesso negado.' }, 403) };
+    const ent = await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
+    if (!isAdminUser(session.user, ent, cfg)) return { error: json({ ok: false, error: 'Acesso negado.' }, 403) };
     return { session };
   }
 
@@ -783,8 +845,8 @@ export function createApp({ db, env = {} }) {
     const cookies = getCookies(request);
     const session = await getSession(db, cookies.sam_session);
     if (!session) return json({ ok: false, error: 'Não autenticado.' }, 401);
-    const ent = await getEntitlement(db, session.userId) || (await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS }));
-    if (ent.plan !== 'admin') return json({ ok: false, error: 'Acesso negado.' }, 403);
+    const ent = await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
+    if (!isAdminUser(session.user, ent, cfg)) return json({ ok: false, error: 'Acesso negado.' }, 403);
 
     const rows = await db.prepare(
       'SELECT u.id, u.name, u.email, u.avatar, u.created_at, e.plan, e.status, e.started_at, e.expires_at, e.provider FROM users u LEFT JOIN entitlements e ON e.user_id = u.id ORDER BY u.created_at DESC LIMIT 500'
@@ -793,7 +855,7 @@ export function createApp({ db, env = {} }) {
   });
 
   /* -------- google oauth -------- */
-  router.set('GET /api/auth/google/start', async (_, ctx) => {
+  router.set('GET /api/auth/google/start', async (request) => {
     if (!cfg.GOOGLE_CLIENT_ID) {
       return json({ ok: false, error: 'Login com Google não configurado nesta instância.' }, 501);
     }
@@ -809,6 +871,8 @@ export function createApp({ db, env = {} }) {
     const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
     const stateParts = ['sam_oauth_state=' + state, 'Path=/', 'HttpOnly', 'SameSite=Lax', 'Max-Age=600'];
     if (cfg.COOKIE_SECURE !== 'false') stateParts.push('Secure');
+    const stateDomain = cookieDomainFor(request, cfg);
+    if (stateDomain) stateParts.push(`Domain=${stateDomain}`);
     const cookie = stateParts.join('; ');
     return new Response(null, { status: 302, headers: { location: url, 'set-cookie': cookie } });
   });
@@ -862,9 +926,13 @@ export function createApp({ db, env = {} }) {
     const token = randomHex(TOKEN_BYTES);
     await db.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(token, user.id, now, now + SESSION_TTL_MS).run();
 
-    const headers = new Headers({ location: `${cfg.PUBLIC_ORIGIN || '/'}/minha-conta` });
-    headers.append('set-cookie', makeSessionCookie(token, cfg, now));
-    headers.append('set-cookie', 'sam_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+    const headers = new Headers({ location: `${url.origin}/minha-conta` });
+    headers.append('set-cookie', makeSessionCookie(token, cfg, now, request));
+    const clearState = ['sam_oauth_state=; Path=/', 'HttpOnly', 'SameSite=Lax', 'Max-Age=0'];
+    if (cfg.COOKIE_SECURE !== 'false') clearState.push('Secure');
+    const clearDomain = cookieDomainFor(request, cfg);
+    if (clearDomain) clearState.push(`Domain=${clearDomain}`);
+    headers.append('set-cookie', clearState.join('; '));
     return new Response(null, { status: 302, headers });
   });
 
