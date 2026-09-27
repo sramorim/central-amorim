@@ -101,7 +101,9 @@ test('criação de pedido valida entrada e gera código', async () => {
 test('pedidos exigem admin e ativam PRO para o comprador', async () => {
   const user = await register('admin', { name: 'Dono', email: 'dono@central.com', password: 'senha-forte-123' });
   const cookie = cookieFrom(user.res);
-  assert.equal(user.data.user.plan, 'ADMIN');
+  // Admin vem da role, não de um plano chamado ADMIN.
+  assert.equal(user.data.user.role, 'admin');
+  assert.notEqual(user.data.user.plan, 'ADMIN');
 
   const order = await call('admin', '/api/orders', { method: 'POST', body: { name: 'Cliente', email: 'cliente@bol.com' } });
   const code = order.data.order.code;
@@ -125,7 +127,7 @@ test('comprador existente vira PRO após ativação e na criação de conta', as
   freshApp('pro', { PIX_KEY: 'central-amorim@exemplo.com', ADMIN_EMAILS: 'dono@pro.com' });
 
   const dono = await register('pro', { name: 'Dono', email: 'dono@pro.com', password: 'senha-forte-123' });
-  assert.equal(dono.data.user.plan, 'ADMIN');
+  assert.equal(dono.data.user.role, 'admin');
   const donoCookie = cookieFrom(dono.res);
 
   const jaExistia = await register('pro', { name: 'Compra Antes', email: 'compra@bol.com', password: 'senha-forte-123' });

@@ -1,12 +1,14 @@
 /**
  * Protecao do credito pago (Apify) e headers de seguranca.
  *
- * Contexto: as rotas /api/instagram e /api/whatsapp-lookup nao exigem login (o
- * Shandon Elite tem sessao propria e nao manda a cookie da Central), ou seja,
- * qualquer pessoa na internet podia chamar. O unico teto era um contador na
- * memoria do isolate, que o Cloudflare reinicia a cada cold start e replica
- * por datacenter — ou seja, nao era teto nenhum. Estes testes travam a cota no
- * D1 (global) e os headers de seguranca.
+ * Contexto: /api/instagram e /api/whatsapp-lookup gastam credito real, e o
+ * unico teto era um contador na memoria do isolate, que o Cloudflare reinicia a
+ * cada cold start e replica por datacenter — ou seja, nao era teto nenhum. Estes
+ * testes travam a cota no D1 (global) e os headers de seguranca.
+ *
+ * Atualizado: as rotas agora exigem sessao da Central (enforcement no servidor,
+ * ver src/backend/app.js). Os testes rodam como uma conta PRO, criada uma vez
+ * por app, porque a cativa mudaria a medicao da cota.
  */
 
 import test from 'node:test';
@@ -44,9 +46,34 @@ function freshApp(name, envOverrides = {}) {
   return { app, db, env };
 }
 
-async function call(name, path, { method = 'GET', body, cookie, origin, headers = {} } = {}) {
+/* Sessao PRO por app: as ferramentas de credito exigem login + plano. */
+const sessions = new Map();
+
+async function session(name) {
+  const key = handlerName(name);
+  if (sessions.has(key)) return sessions.get(key);
+  const { app, db } = apps.get(key);
+  const res = await app.fetch(new Request(`${BASE}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Quota User', email: `quota-${key}@teste.com`, password: 'senha-forte-123' }),
+  }));
+  const data = await res.json();
+  const cookie = (res.headers.get('set-cookie') || '').split(';')[0];
+  if (!cookie) throw new Error(`sessao de teste nao criada para ${name}`);
+  db._exec("UPDATE entitlements SET plan = 'pro' WHERE user_id = '" + data.user.id + "'");
+  sessions.set(key, cookie);
+  return cookie;
+}
+
+async function call(name, path, { method = 'GET', body, cookie, origin, headers = {}, noAuth = false } = {}) {
   const { app } = apps.get(handlerName(name));
   const init = { method, headers: { ...headers } };
+  if (cookie === null || noAuth) {
+    // visitante: sem sessao
+  } else {
+    init.headers.cookie = cookie || (await session(name));
+  }
   if (body !== undefined) {
     init.body = typeof body === 'string' ? body : JSON.stringify(body);
     init.headers['content-type'] = 'application/json';
@@ -86,7 +113,7 @@ test('um isolate novo (banco novo) continua enxergando o consumo do dia', async 
 
   const res = await outro.fetch(new Request(`${BASE}/api/instagram`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', cookie: await session('quota') },
     body: JSON.stringify({ username: 'outro-isolate' }),
   }));
   const data = await res.json();
@@ -108,7 +135,7 @@ test('a cota zera no dia seguinte', async () => {
 
   const res = await createApp({ db, env }).fetch(new Request(`${BASE}/api/instagram`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', cookie: await session('quotaDia') },
     body: JSON.stringify({ username: 'hoje' }),
   }));
   const data = await res.json();
@@ -124,10 +151,11 @@ test('requisições simultâneas não furam o teto (o limite é do banco)', asyn
   const { db, env } = apps.get(handlerName('quotaPar'));
 
   // Dez chamadas ao mesmo tempo, teto 5: no maximo cinco podem ter sido aceitas.
+  const cookie = await session('quotaPar');
   await Promise.all(Array.from({ length: 10 }, (_, i) =>
     createApp({ db, env }).fetch(new Request(`${BASE}/api/instagram`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', cookie },
       body: JSON.stringify({ username: `corrida${i}` }),
     })).then((r) => r.json())
   ));
@@ -182,27 +210,56 @@ test('perfil inexistente do Apify é "não encontrado", não erro interno 500', 
   );
   try {
     const { res, data } = await call('igAusente', '/api/instagram', { method: 'POST', body: { username: 'nao_existe_zzz' } });
-    assert.equal(res.status, 200, 'perfil inexistente não pode ser erro 500');
-    assert.match(JSON.stringify(data), /não encontrado/i);
+    assert.equal(res.status, 200, 'resposta do Actor não pode virar erro 500');
+    assert.equal(data.data.outcome, 'provider_error', 'desfecho próprio, não "não encontrado"');
     assert.equal(data.data.profile, undefined, 'não pode inventar perfil');
   } finally {
     globalThis.fetch = fetchReal;
   }
 });
 
-test('falha real do Actor continua sendo erro, não "não encontrado"', async () => {
+test('item vazio do Actor é "não encontrado" de verdade', async () => {
   freshApp('igErroReal', { APIFY_API_TOKEN: 'apify_teste', APIFY_DAILY_LIMIT: '40' });
 
   const fetchReal = globalThis.fetch;
-  // Erro de cota/limite do ator não significa perfil inexistente.
-  globalThis.fetch = async () => new Response(
-    JSON.stringify([{ error: 'Actor run failed: monthly usage limit reached' }]),
-    { status: 200, headers: { 'content-type': 'application/json' } }
-  );
+  // Array vazio = o Actor rodou e não achou o perfil: resposta limpa.
+  globalThis.fetch = async () => new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } });
   try {
-    const { res } = await call('igErroReal', '/api/instagram', { method: 'POST', body: { username: 'sr__amorim' } });
-    assert.equal(res.status, 500, 'erro real do ator precisa continuar sendo erro');
+    const { res, data } = await call('igErroReal', '/api/instagram', { method: 'POST', body: { username: 'nao_existe_zzz' } });
+    assert.equal(res.status, 200);
+    assert.equal(data.data.outcome, 'not_found', 'array vazio do Actor é perfil inexistente');
   } finally {
     globalThis.fetch = fetchReal;
   }
+});
+
+test('HTTP 201 do Apify (run ainda processando) tem desfecho próprio, não 500', async () => {
+  freshApp('igPending', { APIFY_API_TOKEN: 'apify_teste', APIFY_DAILY_LIMIT: '40' });
+  const fetchReal = globalThis.fetch;
+  globalThis.fetch = async () => new Response('', { status: 201 });
+  try {
+    const { res, data } = await call('igPending', '/api/instagram', { method: 'POST', body: { username: 'sr__amorim' } });
+    assert.equal(res.status, 200, '201 do Apify é o run ainda em andamento');
+    assert.equal(data.data.outcome, 'pending');
+    assert.match(JSON.stringify(data), /ainda está processando/i);
+  } finally {
+    globalThis.fetch = fetchReal;
+  }
+});
+
+test('a resposta do Instagram sempre traz um outcome tipado', async () => {
+  freshApp('igOutcome', { APIFY_API_TOKEN: 'apify_teste', APIFY_DAILY_LIMIT: '40' });
+  const fetchReal = globalThis.fetch;
+  const cenarios = [
+    { resposta: JSON.stringify([{ username: 'x', fullName: 'X' }]), esperado: 'ok' },
+    { resposta: '[]', esperado: 'not_found' },
+    { resposta: '', esperado: 'not_found' },
+    { resposta: JSON.stringify([{ error: 'qualquer mensagem nova do ator' }]), esperado: 'provider_error' },
+  ];
+  for (const { resposta, esperado } of cenarios) {
+    globalThis.fetch = async () => new Response(resposta, { status: 200, headers: { 'content-type': 'application/json' } });
+    const { data } = await call('igOutcome', '/api/instagram', { method: 'POST', body: { username: 'x' } });
+    assert.equal(data.data.outcome, esperado, `resposta "${resposta.slice(0, 40)}"`);
+  }
+  globalThis.fetch = fetchReal;
 });

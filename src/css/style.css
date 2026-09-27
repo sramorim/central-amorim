@@ -1799,3 +1799,169 @@ button { cursor: pointer; font: inherit; }
   color: var(--text-secondary);
   padding: 3rem 0;
 }
+
+/* ---------- Sessão no header: avatar, nome e plano ---------- */
+.auth-chip-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+  background: var(--accent-soft);
+}
+
+.auth-chip-avatar--initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.auth-chip-name {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auth-chip-plan {
+  padding: 0.1rem 0.45rem;
+  border-radius: 100px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(45, 212, 120, 0.12);
+  color: #34d879;
+  border: 1px solid rgba(45, 212, 120, 0.24);
+}
+
+.auth-chip-plan--admin {
+  background: rgba(251, 191, 36, 0.12);
+  color: #f5b52e;
+  border-color: rgba(251, 191, 36, 0.26);
+}
+
+.auth-chip--ghost {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.auth-chip--ghost:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.nav-mobile-link--button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* ---------- Cadeado de ferramenta (paga / bloqueada) ----------
+   O que aparece aqui é UX. Quem barra de verdade é a API: se alguém digitar a
+   URL da ferramenta direto, a resposta é 401/403 mesmo assim. */
+.project-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0.15rem 0 0.6rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: rgba(251, 191, 36, 0.1);
+  color: #f5b52e;
+  border: 1px solid rgba(251, 191, 36, 0.24);
+}
+
+.project-lock--blocked {
+  background: rgba(248, 113, 113, 0.1);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.24);
+}
+
+.project-lock--draft {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+.project-lock-note {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.btn-locked {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed var(--border-strong);
+  color: var(--text-dim);
+}
+
+.btn-locked:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text);
+}
+
+.project-card--locked {
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+.project-card--locked .project-description {
+  opacity: 0.75;
+}
+
+.status-draft {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.status-blocked {
+  background: rgba(248, 113, 113, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.22);
+}
+
+/* Slot de sessão nas páginas de ferramenta (header enxuto, sem o menu do site) */
+.tool-auth-slot {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.tool-auth-slot .auth-chip {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .tool-auth-slot {
+    gap: 0.3rem;
+  }
+
+  .tool-auth-slot .auth-chip-name {
+    max-width: 6rem;
+  }
+
+  .tool-auth-slot .auth-chip-plan {
+    display: none;
+  }
+}

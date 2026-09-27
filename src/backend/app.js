@@ -21,6 +21,17 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 import { installShandonOsint } from './shandon-osint.js';
 import { installSearchOsint } from './search-osint.js';
+import {
+  AUDIT_TABLE_SQL,
+  TOOLS_TABLE_SQL,
+  getTool,
+  hasToolAccess,
+  listAudit,
+  listTools,
+  recordAudit,
+  seedTools,
+  updateTool,
+} from './tools.js';
 
 /* ------------------------------------------------------------------ */
 /* Plans / Entitlements model                                          */
@@ -98,12 +109,16 @@ function resolvePlan(ent) {
 
 function publicMe(user, ent) {
   const plan = resolvePlan(ent);
+  const role = String((user && user.role) || 'user');
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     avatar: user.avatar || null,
     createdAt: user.created_at,
+    role,
+    isAdmin: role === 'admin',
+    accountStatus: (user && user.status) || 'active',
     plan: plan ? plan.code : 'FREE',
     planLabel: plan ? plan.label : 'Plano gratuito',
     status: ent ? ent.status : 'active',
@@ -186,6 +201,8 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   avatar TEXT,
+  role TEXT NOT NULL DEFAULT 'user',
+  status TEXT NOT NULL DEFAULT 'active',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -241,19 +258,57 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_email ON orders(email);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+${TOOLS_TABLE_SQL}
+${AUDIT_TABLE_SQL}
 `;
 
-let ensured = false;
+/* Colunas adicionadas depois do primeiro deploy. `CREATE TABLE IF NOT EXISTS`
+   não cria coluna em tabela que já existe, então o D1 de produção precisa destes
+   ALTER TABLE. São ADITIVOS e idempotentes: quem já tem linha ganha o default,
+   ninguém perde dado. (Em banco novo o SCHEMA_SQL já traz as colunas.) */
+const ADDED_COLUMNS = [
+  { table: 'users', column: 'role', ddl: "role TEXT NOT NULL DEFAULT 'user'" },
+  { table: 'users', column: 'status', ddl: "status TEXT NOT NULL DEFAULT 'active'" },
+];
+
+async function addColumnIfMissing(db, table, column, ddl) {
+  const info = await db.prepare(`PRAGMA table_info(${table})`).all();
+  const names = toRows(info).map((r) => r.name);
+  if (!names.length) return false; // tabela ainda não existe: o CREATE TABLE já traz a coluna
+  if (names.includes(column)) return false;
+  await db.prepare(`ALTER TABLE ${table} ADD COLUMN ${ddl}`).run();
+  console.log(`[central] migration: ${table}.${column} adicionada`);
+  return true;
+}
+
+/* `ensured` como boolean global assume UM banco por processo. No Worker isso é
+   verdade, mas a suite de testes monta vários bancos no mesmo processo e o
+   segundo apprecebia um D1 sem tabela `tools` (404 em toda rota guardada).
+   WeakSet amarra o estado ao próprio objeto de banco: mesmo isolate, um cache
+   só; bancos diferentes, cada um com o seu. */
+const ensuredDbs = new WeakSet();
 
 async function ensureSchema(db) {
-  if (ensured) return;
+  if (ensuredDbs.has(db)) return;
+  /* Colunas primeiro, e ANTES dos CREATE INDEX que as usam. O D1 de produção
+     já tem `users` sem `role`; se o índice viesse antes do ALTER, o
+     `CREATE INDEX ... ON users(role)` estouraria e TODAS as rotas cairiam em
+     500 no primeiro request depois do deploy. Provado com um banco no formato
+     antigo em tests/migration-d1-antigo.test.mjs. */
+  for (const c of ADDED_COLUMNS) {
+    await addColumnIfMissing(db, c.table, c.column, c.ddl);
+  }
   // D1 runtime rejects multi-statement db.exec() ("incomplete input"), so run
   // each statement through prepare().all(). Works on D1 and the node:sqlite shim.
   const stmts = SCHEMA_SQL.split(';').map((s) => s.trim()).filter(Boolean);
   for (const stmt of stmts) {
     await db.prepare(stmt).all();
   }
-  ensured = true;
+  // Catálogo de ferramentas: semeia só o que falta, nunca sobrescreve ajustes.
+  await seedTools(db);
+  ensuredDbs.add(db);
 }
 
 /* ------------------------------------------------------------------ */
@@ -401,7 +456,11 @@ function originAllowed(request, env) {
   return allowedOrigins(env).has(normalizeOrigin(origin));
 }
 
-/* CORS para o app do SHANDON ELITE consumir as ferramentas hospedadas aqui. */
+/* CORS para o app do SHANDON ELITE consumir as ferramentas hospedadas aqui.
+   `allow-credentials` é obrigatório: a sessão mora num cookie HttpOnly com
+   Domain=.senhoramorim.com.br e o navegador só o envia numa chamada com
+   credenciais. Sem este header o app irmão nunca enxerga quem está logado.
+   O Origin nunca é refletido cegamente — só origens da lista-configurada. */
 function corsFor(request, env) {
   const origin = request.headers.get('Origin');
   if (!origin) return {};
@@ -413,8 +472,10 @@ function corsFor(request, env) {
   }
   return {
     'access-control-allow-origin': origin,
-    'access-control-allow-methods': 'GET, POST, OPTIONS',
+    'access-control-allow-credentials': 'true',
+    'access-control-allow-methods': 'GET, POST, PATCH, OPTIONS',
     'access-control-allow-headers': 'Content-Type, Authorization, x-api-key, x-requested-with',
+    'access-control-max-age': '86400',
     vary: 'Origin',
   };
 }
@@ -479,10 +540,14 @@ function toRows(result) {
 
 async function getSession(db, token) {
   if (!token) return null;
-  const row = await db.prepare('SELECT s.token, s.user_id, s.expires_at, u.id as uid, u.name, u.email, u.avatar, u.created_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ?').bind(token).first();
+  const row = await db.prepare('SELECT s.token, s.user_id, s.expires_at, u.id as uid, u.name, u.email, u.avatar, u.role, u.status, u.created_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ?').bind(token).first();
   if (!row) return null;
   if (row.expires_at < Date.now()) return null;
-  return { token: row.token, userId: row.user_id, user: { id: row.uid, name: row.name, email: row.email, avatar: row.avatar, created_at: row.created_at } };
+  return {
+    token: row.token,
+    userId: row.user_id,
+    user: { id: row.uid, name: row.name, email: row.email, avatar: row.avatar, role: row.role || 'user', status: row.status || 'active', created_at: row.created_at },
+  };
 }
 
 async function getEntitlement(db, userId) {
@@ -498,31 +563,84 @@ function adminEmailSet(env) {
   return new Set(String(env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean));
 }
 
-/* Admin é derivado do e-mail SEMPRE (fonte da verdade = ADMIN_EMAILS), e não
-   só do plano já gravado. Sem isso, um e-mail adicionado à lista depois do
-   cadastro nunca ganhava acesso ao /admin. */
-function isAdminUser(user, ent, env) {
-  if (ent && ent.plan === 'admin') return true;
-  const email = String((user && user.email) || '').trim().toLowerCase();
-  return Boolean(email) && adminEmailSet(env).has(email);
+/* A FONTE DA VERDADE de "isto é admin" é `users.role`.
+ *
+ * O plano comercial nunca concede e nunca revoga poder administrativo: foi
+ * exatamente isso que criou o bug de duas contas admin — `entitlements.plan`
+ * valia 'admin' como se fosse plano, e essa linha ficava gravada para sempre
+ * mesmo depois de o e-mail sair da lista ADMIN_EMAILS.
+ *
+ * `ADMIN_EMAILS` continua valendo, mas só como CONCESSÃO de inicialização: se o
+ * dono colocar um e-mail lá, a conta ganha role=admin no próximo acesso (assim
+ * uma conta já criada não fica trancada fora do painel). Para REVOGAR, é o
+ * painel — de propósito, senão trocar a lista de configuração reabria o acesso
+ * de quem o dono tinha removido de propósito. */
+function isAdminUser(user) {
+  return String((user && user.role) || 'user') === 'admin';
+}
+
+/* Concessão por configuração. Só promove, nunca rebaixa (ver nota acima). */
+async function ensureRoleFromConfig(db, user, cfg) {
+  if (!user) return 'user';
+  const email = String(user.email || '').trim().toLowerCase();
+  const inList = email && adminEmailSet(cfg).has(email);
+  if (inList && (user.role || 'user') !== 'admin') {
+    await db.prepare("UPDATE users SET role = 'admin', updated_at = ? WHERE id = ?").bind(Date.now(), user.id).run();
+    return 'admin';
+  }
+  return user.role || 'user';
+}
+
+/* Reconcilia os dados que já existem em produção, uma única vez, sem apagar
+   nada:
+     1. role=admin para quem está em ADMIN_EMAILS  (fonte de verdade = config)
+     2. o plano 'admin' vira 'pro' para quem NÃO é admin por role
+   O passo 2 é a correção da duplicidade: a conta antiga deixa de ter o plano
+   'admin' (que era o que a mantinha administrativa) mas continua com acesso
+   completo de ferramenta, como qualquer cliente pago. Nenhuma conta é removida.
+   A role só é rebaixada se alguém usar o painel de propósito. */
+const reconciledDbs = new WeakSet();
+async function reconcileRoles(db, cfg) {
+  if (reconciledDbs.has(db)) return;
+  const now = Date.now();
+  for (const email of adminEmailSet(cfg)) {
+    await db.prepare("UPDATE users SET role = 'admin', updated_at = ? WHERE lower(email) = ?").bind(now, email).run();
+  }
+  await db
+    .prepare(
+      "UPDATE entitlements SET plan = 'pro' WHERE plan = 'admin' AND user_id IN (SELECT id FROM users WHERE COALESCE(role, 'user') <> 'admin')"
+    )
+    .run();
+  reconciledDbs.add(db);
+}
+
+/* Plano comercial canônico de quem está chamando. A role não entra aqui. */
+function planCodeFor(ent, role) {
+  if (role === 'admin') return 'pro';
+  const resolved = resolvePlan(ent);
+  return resolved ? resolved.code.toLowerCase() : null;
 }
 
 async function ensureEntitlement(db, userId, env) {
   let ent = await getEntitlement(db, userId);
-  const user = await db.prepare('SELECT email FROM users WHERE id = ?').bind(userId).first();
+  const user = await db.prepare('SELECT email, role FROM users WHERE id = ?').bind(userId).first();
   const proOrder = await hasProOrder(db, user ? user.email : null);
-  const isAdmin = isAdminUser(user, ent, env);
+  const isAdmin = isAdminUser(user);
   if (!ent) {
     const now = Date.now();
-    const plan = isAdmin ? 'admin' : proOrder ? 'pro' : 'free';
-    await db.prepare('INSERT OR IGNORE INTO entitlements (user_id, plan, status, started_at, provider) VALUES (?, ?, ?, ?, ?)').bind(userId, plan, 'active', now, isAdmin ? 'central' : proOrder ? 'pix' : 'central').run();
+    /* Admin NÃO ganha plano pago: admin não é cliente. O acesso total vem da
+       role (ver planCodeFor/requireAuth), e o plano continua sendo o que a
+       pessoa realmente comprou. Sem isto, comprar/sair da role mexeria no
+       plano comercial e os dois conceitos voltariam a se misturar. */
+    const plan = proOrder ? 'pro' : 'free';
+    await db.prepare('INSERT OR IGNORE INTO entitlements (user_id, plan, status, started_at, provider) VALUES (?, ?, ?, ?, ?)').bind(userId, plan, 'active', now, proOrder ? 'pix' : 'central').run();
     ent = await getEntitlement(db, userId);
-  } else if (isAdmin && ent.plan !== 'admin') {
-    // Promoção/recuperação automática de admin (e-mail entrou na lista depois).
-    const now = Date.now();
-    await db.prepare("UPDATE entitlements SET plan = 'admin', status = 'active', started_at = ?, expires_at = NULL, provider = 'central' WHERE user_id = ?").bind(now, userId).run();
+  } else if (ent.plan === 'admin' && !isAdmin) {
+    // Bug antigo: plano 'admin' orfão. Baixa para 'pro' — a conta segue com
+    // acesso de ferramenta, só perde (e nunca teve) poder administrativo.
+    await db.prepare("UPDATE entitlements SET plan = 'pro' WHERE user_id = ?").bind(userId).run();
     ent = await getEntitlement(db, userId);
-  } else if (proOrder && ent.plan === 'free') {
+  } else if (proOrder && ent.plan === 'free' && !isAdmin) {
     const now = Date.now();
     await db.prepare("UPDATE entitlements SET plan = 'pro', status = 'active', started_at = ?, expires_at = NULL, provider = 'pix' WHERE user_id = ?").bind(now, userId).run();
     ent = await getEntitlement(db, userId);
@@ -563,12 +681,116 @@ export function createApp({ db, env = {} }) {
     APIFY_DAILY_LIMIT: Number(env.APIFY_DAILY_LIMIT) || 40,
   };
   const router = new Map();
+  /* Rotas com parâmetro no caminho (PATCH /api/admin/.../:id). O Map exato não
+     resolve isso, então ficam numa lista com regex avaliada só quando a busca
+     exata falha. */
+  const dynamicRoutes = [];
+  const route = (method, pattern, handler) => {
+    dynamicRoutes.push({ method, re: new RegExp(`^${pattern}$`), handler });
+  };
+
+  /* Schema + reconciliação de roles, sempre antes de tocar em dados. */
+  async function ensureReady() {
+    await ensureSchema(db);
+    await reconcileRoles(db, cfg);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Auth resolvido uma vez por requisição (ctx.auth)                      */
+  /* ------------------------------------------------------------------ */
+  /* Antes cada rota repetia getSession/ensureEntitlement por conta própria e
+     as 10 rotas de ferramentas simplesmente não checavam nada. Agora o
+     dispatcher resolve UMA vez e coloca em ctx.auth; qualquer rota pode ler.
+     Nenhuma rota é obrigada a lembrar de chamar nada. */
+
+  const GUEST_AUTH = Object.freeze({ session: null, user: null, ent: null, role: 'guest', plan: null, authenticated: false, suspended: false });
+
+  async function resolveAuth(request) {
+    await ensureReady();
+    const cookies = getCookies(request);
+    const token = cookies.sam_session;
+    if (!token) return { ...GUEST_AUTH };
+    const session = await getSession(db, token);
+    if (!session) return { ...GUEST_AUTH };
+    const role = await ensureRoleFromConfig(db, session.user, cfg);
+    session.user.role = role;
+    const ent = await ensureEntitlement(db, session.userId, cfg);
+    return {
+      session,
+      user: session.user,
+      ent,
+      role,
+      plan: planCodeFor(ent, role),
+      authenticated: true,
+      suspended: String(session.user.status || 'active') !== 'active',
+    };
+  }
+
+  /** 401/403 quando não há sessão válida. Devolve `null` quando pode seguir. */
+  async function requireAuth(ctx, { admin = false } = {}) {
+    const auth = ctx.auth;
+    if (!auth || !auth.authenticated) {
+      return json({ ok: false, authenticated: false, error: 'Não autenticado.' }, 401, corsFor(ctx.request, cfg));
+    }
+    if (auth.suspended) {
+      return json({ ok: false, error: 'Esta conta está suspensa.' }, 403, corsFor(ctx.request, cfg));
+    }
+    if (admin && auth.role !== 'admin') {
+      return json({ ok: false, error: 'Acesso negado.' }, 403, corsFor(ctx.request, cfg));
+    }
+    return null;
+  }
+
+  /**
+   * Porteiro de ferramenta. Devolve `null` quando a pessoa pode usar, ou uma
+   * resposta de erro pronta. É o que fecha o contorno pela URL direta: não
+   * adianta esconder o botão no HTML, porque a API responde igual para todos.
+   * Admin (role) passa em tudo.
+   */
+  async function toolGuard(toolId, request, ctx) {
+    const auth = ctx.auth || { ...GUEST_AUTH };
+    if (auth.suspended) {
+      return json({ ok: false, success: false, error: 'Esta conta está suspensa.', tool: toolId, reason: 'suspended' }, 403, corsFor(request, cfg));
+    }
+    const tool = await getTool(db, toolId);
+    const decision = hasToolAccess(tool, { authenticated: auth.authenticated, role: auth.role, plan: auth.plan });
+    if (decision.allowed) return null;
+    const messages = {
+      login_required: 'Crie uma conta gratuita ou entre para usar esta ferramenta.',
+      upgrade_required: 'Esta ferramenta faz parte do plano PRO.',
+      blocked: 'Esta ferramenta está temporariamente indisponível.',
+      not_published: 'Esta ferramenta ainda não foi publicada.',
+      unknown_tool: 'Ferramenta indisponível.',
+    };
+    return json(
+      {
+        ok: false,
+        success: false,
+        error: messages[decision.reason] || messages.unknown_tool,
+        tool: toolId,
+        reason: decision.reason,
+        loginUrl: decision.reason === 'login_required' ? '/entrar' : null,
+        upgradeUrl: decision.reason === 'upgrade_required' ? '/planos' : null,
+      },
+      decision.code,
+      corsFor(request, cfg)
+    );
+  }
+
+  /** Envelopa um handler de ferramenta com o porteiro. */
+  function guard(toolId, handler) {
+    return async (request, ctx) => {
+      const denied = await toolGuard(toolId, request, ctx);
+      if (denied) return denied;
+      return handler(request, ctx);
+    };
+  }
 
   /* -------- ferramentas do Shandon no Workers (sem dormir) -------- */
-  installShandonOsint({ router, json, readBody, rateLimit, db, cfg, corsFor: (request) => corsFor(request, cfg) });
+  installShandonOsint({ router, json, readBody, rateLimit, db, cfg, guard, corsFor: (request) => corsFor(request, cfg) });
 
   /* -------- buscador de pessoa ("Localizar Pessoa") -------- */
-  installSearchOsint({ router, json, readBody, rateLimit, cfg, corsFor: (request) => corsFor(request, cfg) });
+  installSearchOsint({ router, json, readBody, rateLimit, cfg, guard, corsFor: (request) => corsFor(request, cfg) });
 
   /* -------- rate limit -------- */
   async function rateLimit(key, max = 6, winMs = 60_000) {
@@ -606,22 +828,24 @@ export function createApp({ db, env = {} }) {
     if (!EMAIL_RE.test(email) || email.length > 254) return json({ error: 'E-mail inválido.' }, 400);
     if (password.length < 8 || password.length > 128) return json({ error: 'A senha deve ter entre 8 e 128 caracteres.' }, 400);
 
-    await ensureSchema(db);
+    await ensureReady();
     const existing = await db.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
     if (existing) return json({ error: 'Este e-mail já está cadastrado.' }, 409);
 
     const id = crypto.randomUUID();
     const now = Date.now();
     const passwordHash = await createPasswordHash(password);
-    await db.prepare('INSERT INTO users (id, name, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').bind(id, name, email, passwordHash, now, now).run();
+    // A role nasce da configuração (fonte de verdade), nunca do plano.
+    const role = adminEmailSet(cfg).has(email) ? 'admin' : 'user';
+    await db.prepare('INSERT INTO users (id, name, email, password_hash, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').bind(id, name, email, passwordHash, role, 'active', now, now).run();
 
-    let ent = await ensureEntitlement(db, id, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
+    let ent = await ensureEntitlement(db, id, cfg);
     if (!ent) ent = await getEntitlement(db, id);
 
     const token = randomHex(TOKEN_BYTES);
     await db.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(token, id, now, now + SESSION_TTL_MS).run();
 
-    const user = await db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').bind(id).first();
+    const user = await db.prepare('SELECT id, name, email, avatar, role, status, created_at FROM users WHERE id = ?').bind(id).first();
     return json({ ok: true, user: publicMe(user, ent) }, 201, { 'set-cookie': makeSessionCookie(token, cfg, now, request) });
   });
 
@@ -635,18 +859,23 @@ export function createApp({ db, env = {} }) {
     const email = String(body.email || '').trim().toLowerCase();
     const password = String(body.password || '');
 
-    await ensureSchema(db);
+    await ensureReady();
     const user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
     const ok = user ? await verifyPassword(password, user.password_hash) : false;
     if (!ok) return json({ error: 'E-mail ou senha incorretos.' }, 401);
+    if (String(user.status || 'active') !== 'active') {
+      return json({ ok: false, error: 'Esta conta está suspensa. Fale com o suporte.' }, 403);
+    }
 
     const now = Date.now();
     const token = randomHex(TOKEN_BYTES);
     await db.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(token, user.id, now, now + SESSION_TTL_MS).run();
 
-    const ent = await ensureEntitlement(db, user.id, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
+    const role = await ensureRoleFromConfig(db, user, cfg);
+    const ent = await ensureEntitlement(db, user.id, cfg);
 
-    const pub = await db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').bind(user.id).first();
+    const pub = await db.prepare('SELECT id, name, email, avatar, role, status, created_at FROM users WHERE id = ?').bind(user.id).first();
+    pub.role = role;
     return json({ ok: true, user: publicMe(pub, ent) }, 200, { 'set-cookie': makeSessionCookie(token, cfg, now, request) });
   });
 
@@ -662,13 +891,17 @@ export function createApp({ db, env = {} }) {
   });
 
   /* -------- me -------- */
-  router.set('GET /api/auth/me', async (request) => {
+  /* CORS com credenciais: a Central é a fonte de verdade da sessão e os apps
+     irmãos (Elite em outro subdomínio) precisam ler o estado dela para saber
+     quem está logado. Sem `allow-credentials` o navegador descarta a resposta. */
+  router.set('GET /api/auth/me', async (request, ctx) => {
     await ensureSchema(db);
-    const cookies = getCookies(request);
-    const session = await getSession(db, cookies.sam_session);
-    if (!session) return json({ ok: false, error: 'Não autenticado.', authenticated: false }, 401);
-    const ent = await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
-    return json({ ok: true, authenticated: true, user: publicMe(session.user, ent) });
+    await reconcileRoles(db, cfg);
+    const auth = await resolveAuth(request);
+    if (!auth.authenticated) {
+      return json({ ok: false, error: 'Não autenticado.', authenticated: false }, 401, corsFor(request, cfg));
+    }
+    return json({ ok: true, authenticated: true, user: publicMe(auth.user, auth.ent) }, 200, corsFor(request, cfg));
   });
 
   /* -------- forgot password -------- */
@@ -728,46 +961,83 @@ export function createApp({ db, env = {} }) {
   });
 
   /* -------- access check (server-side enforcement) -------- */
-  router.set('POST /api/access/check', async (request) => {
-    await ensureSchema(db);
-    const cookies = getCookies(request);
-    const session = await getSession(db, cookies.sam_session);
+  router.set('POST /api/access/check', async (request, ctx) => {
+    await ensureReady();
+    const auth = ctx.auth || { ...GUEST_AUTH };
     const body = await readBody(request);
     const project = String((body && body.project) || '').trim() || 'amorim-osint';
     const limitKey = String((body && body.limit) || body.resource || '').trim() || 'tools';
 
-    let plan = null;
-    let planCode = 'VISITOR';
-    if (session) {
-      const ent = await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
-      const resolved = resolvePlan(ent);
-      if (resolved) {
-        plan = resolved;
-        planCode = resolved.code;
-      }
+    /* A role administrativa define o teto (acesso total); o plano comercial
+       define o restante. A role nunca vem do plano. */
+    const isAdmin = auth.role === 'admin';
+    const planCode = isAdmin ? 'ADMIN' : auth.plan ? String(auth.plan).toUpperCase() : 'VISITOR';
+    /* `auth.plan` é o plano EFETIVO (admin vira 'pro' para poder usar as
+       ferramentas). Para dizer o que a pessoa COMPROU, é preciso ler o
+       entitlement — senão todo admin aparece como cliente PRO. */
+    const commercial = auth.ent && resolvePlan(auth.ent);
+    const commercialPlan = commercial ? String(commercial.code).toUpperCase() : null;
+
+    const sessionLimits = isAdmin
+      ? PLANS.admin.limits[project]
+      : auth.ent && resolvePlan(auth.ent)
+        ? resolvePlan(auth.ent).limits[project]
+        : null;
+    const limits = sessionLimits || GUEST_LIMITS[project] || GUEST_LIMITS['amorim-osint'];
+    const value = limits[limitKey];
+
+    /* BUG ANTIGO: `typeof value === 'boolean' ? value : true` devolvia
+       allowed=true para TODO limite numérico, em qualquer plano — inclusive
+       visitante. Agora limite numérico é comparado com o que a pessoa pediu. */
+    const requested = Number(body && body.current);
+    let allowed;
+    if (typeof value === 'boolean') {
+      allowed = value;
+    } else if (typeof value === 'number') {
+      allowed = Number.isFinite(requested) && requested > 0 ? requested <= value : value >= 1;
+    } else {
+      allowed = false;
     }
 
-    const sessionLimits = plan ? plan.limits[project] : GUEST_LIMITS[project];
-    const limits = sessionLimits || GUEST_LIMITS['amorim-osint'];
-    const value = limits[limitKey];
-    const allowed = typeof value === 'boolean' ? value : true;
+    /* Autorização pela ferramenta concreta (catálogo), quando o cliente manda `tool`. */
+    let tool = null;
+    const toolId = String((body && body.tool) || '').trim();
+    if (toolId) {
+      tool = await getTool(db, toolId);
+      if (tool) {
+        const decision = hasToolAccess(tool, { authenticated: auth.authenticated, role: auth.role, plan: auth.plan });
+        allowed = allowed && decision.allowed;
+        tool = { ...tool, allowed: decision.allowed, reason: decision.allowed ? null : decision.reason };
+      }
+    }
 
     return json({
       ok: true,
       project,
+      /* `plan` é o NÍVEL EFETIVO agregado, não o que a pessoa comprou: o Shandon
+         Elite depende desse campo (`tierForPlan` mapeia 'ADMIN' → full) e não
+         pode ser republicado agora. Quem quiser o plano comercial de verdade
+         usa `commercialPlan`; a autorização acima vem de `auth.role`, nunca
+         deste campo. */
       plan: planCode,
-      demo: planCode === 'VISITOR',
+      commercialPlan,
+      role: auth.role,
+      isAdmin,
+      authenticated: auth.authenticated,
+      demo: !auth.authenticated,
       allowed,
-      current: null,
-      limit: value,
+      current: Number.isFinite(requested) ? requested : null,
+      limit: value === undefined ? null : value,
       limitKey,
-      message:
-        planCode === 'VISITOR'
-          ? 'Crie uma conta gratuita para continuar.'
+      tool,
+      message: !auth.authenticated
+        ? 'Crie uma conta gratuita para continuar.'
+        : !allowed
+          ? 'Este recurso não está disponível no seu plano.'
           : planCode === 'FREE'
             ? 'Recurso básico disponível.'
             : 'Acesso liberado.',
-    });
+    }, 200, corsFor(request, cfg));
   });
 
   /* -------- pix checkout (PRO) -------- */
@@ -822,25 +1092,24 @@ export function createApp({ db, env = {} }) {
   });
 
   /* -------- admin: orders -------- */
-  async function adminCheck(request) {
-    await ensureSchema(db);
-    const cookies = getCookies(request);
-    const session = await getSession(db, cookies.sam_session);
-    if (!session) return { error: json({ ok: false, error: 'Não autenticado.' }, 401) };
-    const ent = await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
-    if (!isAdminUser(session.user, ent, cfg)) return { error: json({ ok: false, error: 'Acesso negado.' }, 403) };
-    return { session };
+  /* A role administrativa (users.role) é a fonte da verdade. Não existe mais
+     "admin" como plano: plano é só free/pro. */
+  async function adminCheck(ctx) {
+    await ensureReady();
+    const denied = await requireAuth(ctx, { admin: true });
+    if (denied) return { error: denied };
+    return { session: ctx.auth.session, auth: ctx.auth };
   }
 
-  router.set('GET /api/orders', async (request) => {
-    const check = await adminCheck(request);
+  router.set('GET /api/orders', async (request, ctx) => {
+    const check = await adminCheck(ctx);
     if (check.error) return check.error;
     const rows = await db.prepare('SELECT id, code, name, email, cpf, amount, plan, status, created_at, paid_at, activated_at FROM orders ORDER BY created_at DESC LIMIT 200').all();
     return json({ ok: true, orders: toRows(rows) });
   });
 
-  router.set('POST /api/orders/activate', async (request) => {
-    const check = await adminCheck(request);
+  router.set('POST /api/orders/activate', async (request, ctx) => {
+    const check = await adminCheck(ctx);
     if (check.error) return check.error;
 
     const body = await readBody(request);
@@ -863,18 +1132,151 @@ export function createApp({ db, env = {} }) {
   });
 
   /* -------- admin users -------- */
-  router.set('GET /api/admin/users', async (request) => {
-    await ensureSchema(db);
-    const cookies = getCookies(request);
-    const session = await getSession(db, cookies.sam_session);
-    if (!session) return json({ ok: false, error: 'Não autenticado.' }, 401);
-    const ent = await ensureEntitlement(db, session.userId, { ADMIN_EMAILS: cfg.ADMIN_EMAILS });
-    if (!isAdminUser(session.user, ent, cfg)) return json({ ok: false, error: 'Acesso negado.' }, 403);
+  router.set('GET /api/admin/users', async (request, ctx) => {
+    const check = await adminCheck(ctx);
+    if (check.error) return check.error;
 
     const rows = await db.prepare(
-      'SELECT u.id, u.name, u.email, u.avatar, u.created_at, e.plan, e.status, e.started_at, e.expires_at, e.provider FROM users u LEFT JOIN entitlements e ON e.user_id = u.id ORDER BY u.created_at DESC LIMIT 500'
+      'SELECT u.id, u.name, u.email, u.avatar, u.role, u.status AS account_status, u.created_at, e.plan, e.status, e.started_at, e.expires_at, e.provider FROM users u LEFT JOIN entitlements e ON e.user_id = u.id ORDER BY u.created_at DESC LIMIT 500'
     ).all();
-    return json({ ok: true, users: rows });
+    return json({ ok: true, users: toRows(rows) });
+  });
+
+  /* -------- admin: gerir conta (role / plano / status) --------
+     A role é o que dá acesso ao painel; o plano é o que dá acesso às
+     ferramentas. Trocar um não mexe no outro. Nada é apagado: suspension é
+     `status`, e a sessão da pessoa é encerrada na hora. */
+  route('PATCH', '/api/admin/users/([^/?#]+)', async (request, ctx) => {
+    const check = await adminCheck(ctx);
+    if (check.error) return check.error;
+
+    const id = request.url.match(/\/api\/admin\/users\/([^/?#]+)/)?.[1];
+    if (!id) return json({ error: 'ID de usuário obrigatório.' }, 400);
+
+    const body = await readBody(request);
+    if (!body || body.__tooLarge) return json({ error: 'Requisição inválida.' }, 400);
+
+    const target = await db.prepare('SELECT id, email, role, status FROM users WHERE id = ?').bind(id).first();
+    if (!target) return json({ error: 'Usuário não encontrado.' }, 404);
+
+    const sets = [];
+    const binds = [];
+    const changed = {};
+
+    if (body.role !== undefined) {
+      const role = String(body.role || '').toLowerCase();
+      if (!['user', 'admin'].includes(role)) return json({ error: 'Role inválida: use user ou admin.' }, 400);
+      // Trava de segurança: o dono não fica sem painel por engano.
+      if (role !== 'admin' && target.id === ctx.auth.user.id) {
+        return json({ error: 'Você não pode remover a própria role de admin.' }, 400);
+      }
+      if (target.role !== role) {
+        sets.push('role = ?');
+        binds.push(role);
+        changed.role = role;
+      }
+    }
+
+    if (body.status !== undefined) {
+      const status = String(body.status || '').toLowerCase();
+      if (!['active', 'suspended'].includes(status)) return json({ error: 'Status inválido: use active ou suspended.' }, 400);
+      if (status === 'suspended' && target.id === ctx.auth.user.id) {
+        return json({ error: 'Você não pode suspender a própria conta.' }, 400);
+      }
+      if (target.status !== status) {
+        sets.push('status = ?');
+        binds.push(status);
+        changed.status = status;
+      }
+    }
+
+    if (sets.length) {
+      binds.push(Date.now(), id);
+      await db.prepare(`UPDATE users SET ${sets.join(', ')}, updated_at = ? WHERE id = ?`).bind(...binds).run();
+    }
+
+    if (body.plan !== undefined) {
+      const plan = String(body.plan || '').toLowerCase();
+      if (!['free', 'pro'].includes(plan)) return json({ error: 'Plano inválido: use free ou pro.' }, 400);
+      await db.prepare("UPDATE entitlements SET plan = ?, status = 'active', expires_at = NULL, provider = 'central' WHERE user_id = ?").bind(plan, id).run();
+      if (!changed.plan) changed.plan = plan;
+    }
+
+    // Sessões mortas ao suspender: suspensão precisa valer imediatamente.
+    if (changed.status === 'suspended') {
+      await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run();
+    }
+
+    if (Object.keys(changed).length) {
+      await recordAudit(db, ctx.auth.user.email, 'user.update', target.email, JSON.stringify(changed));
+    }
+
+    const row = await db.prepare(
+      'SELECT u.id, u.name, u.email, u.role, u.status AS account_status, u.created_at, e.plan, e.status FROM users u LEFT JOIN entitlements e ON e.user_id = u.id WHERE u.id = ?'
+    ).bind(id).first();
+    return json({ ok: true, user: row, changed });
+  });
+
+  /* -------- admin: catálogo de ferramentas --------
+     Aqui o dono publica, define o plano mínimo e bloqueia ferramentas — sem
+     novo deploy, porque a configuração vive no D1. */
+  router.set('GET /api/admin/tools', async (request, ctx) => {
+    const check = await adminCheck(ctx);
+    if (check.error) return check.error;
+    const tools = await listTools(db);
+    return json({ ok: true, tools });
+  });
+
+  route('PATCH', '/api/admin/tools/([^/?#]+)', async (request, ctx) => {
+    const check = await adminCheck(ctx);
+    if (check.error) return check.error;
+
+    const id = request.url.match(/\/api\/admin\/tools\/([^/?#]+)/)?.[1];
+    if (!id) return json({ error: 'ID de ferramenta obrigatório.' }, 400);
+
+    const body = await readBody(request);
+    if (!body || body.__tooLarge) return json({ error: 'Requisição inválida.' }, 400);
+
+    const result = await updateTool(db, id, body, ctx.auth.user.email);
+    if (result.error) return json({ error: result.error }, 400);
+    return json({ ok: true, tool: result.tool });
+  });
+
+  /* -------- catálogo público --------
+     O frontend lê isto para saber o que está publicado e o que a pessoa pode
+     usar. `access` já vem resolvido para quem está chamando. */
+  router.set('GET /api/tools', async (request, ctx) => {
+    await ensureReady();
+    const auth = ctx.auth || { ...GUEST_AUTH };
+    const tools = await listTools(db);
+    const shaped = tools.map((tool) => {
+      const decision = hasToolAccess(tool, { authenticated: auth.authenticated, role: auth.role, plan: auth.plan });
+      return {
+        id: tool.id,
+        name: tool.name,
+        kind: tool.kind,
+        minPlan: tool.minPlan,
+        status: tool.status,
+        position: tool.position,
+        // O front esconde o que está bloqueado/draft; quem é admin vê tudo.
+        visible: tool.status === 'published' || auth.role === 'admin',
+        access: { allowed: decision.allowed, reason: decision.allowed ? null : decision.reason },
+      };
+    });
+    return json({
+      ok: true,
+      authenticated: auth.authenticated,
+      role: auth.role,
+      plan: auth.plan ? String(auth.plan).toUpperCase() : 'VISITOR',
+      isAdmin: auth.role === 'admin',
+      tools: shaped,
+    }, 200, corsFor(request, cfg));
+  });
+
+  router.set('GET /api/admin/audit', async (request, ctx) => {
+    const check = await adminCheck(ctx);
+    if (check.error) return check.error;
+    return json({ ok: true, entries: await listAudit(db, 100) });
   });
 
   /* -------- admin: diagnóstico do ambiente -------- */
@@ -882,8 +1284,8 @@ export function createApp({ db, env = {} }) {
      porque "a chave não funciona" tem quatro causas possíveis (segredo não
      salvo, salvo no Worker errado, salvo na conta errada do Cloudflare, ou
      nome com typo) e sem isso o dono precisa caçar no painel às cegas. */
-  router.set('GET /api/admin/diagnostics', async (request) => {
-    const check = await adminCheck(request);
+  router.set('GET /api/admin/diagnostics', async (request, ctx) => {
+    const check = await adminCheck(ctx);
     if (check.error) return check.error;
 
     const has = (v) => Boolean(String(v || '').trim());
@@ -934,7 +1336,14 @@ export function createApp({ db, env = {} }) {
         users: await count('SELECT COUNT(*) AS n FROM users'),
         sessions: await count('SELECT COUNT(*) AS n FROM sessions'),
         orders: await count('SELECT COUNT(*) AS n FROM orders'),
+        tools: await count('SELECT COUNT(*) AS n FROM tools'),
         withPro: await count("SELECT COUNT(*) AS n FROM entitlements WHERE plan = 'pro'"),
+        /* A role é a fonte da verdade do admin. Se der mais de 1, há conta
+           sobrando com acesso administrativo — vale conferir em /admin. */
+        admins: await count("SELECT COUNT(*) AS n FROM users WHERE role = 'admin'"),
+        suspended: await count("SELECT COUNT(*) AS n FROM users WHERE status = 'suspended'"),
+        /* Deve ser 0 depois da correção: plano 'admin' virou 'pro'. */
+        legacyAdminPlans: await count("SELECT COUNT(*) AS n FROM entitlements WHERE plan = 'admin'"),
       },
       time: Date.now(),
     });
@@ -997,7 +1406,7 @@ export function createApp({ db, env = {} }) {
     const email = String(profile.email || '').toLowerCase();
     if (!email) return json({ ok: false, error: 'Conta Google sem e-mail.' }, 400);
 
-    await ensureSchema(db);
+    await ensureReady();
     let user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
     const now = Date.now();
     if (!user) {
@@ -1005,9 +1414,15 @@ export function createApp({ db, env = {} }) {
       const derivedPassword = randomHex(32); // OAuth-only accounts have no usable password.
       const passwordHash = await createPasswordHash(derivedPassword + id);
       const name = profile.name || profile.given_name || email.split('@')[0];
-      await db.prepare('INSERT INTO users (id, name, email, password_hash, avatar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(id, name, email, passwordHash, profile.picture || null, now, now).run();
+      const role = adminEmailSet(cfg).has(email) ? 'admin' : 'user';
+      await db.prepare('INSERT INTO users (id, name, email, password_hash, avatar, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(id, name, email, passwordHash, profile.picture || null, role, 'active', now, now).run();
       user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
+    } else if (String(user.status || 'active') !== 'active') {
+      return new Response(null, { status: 302, headers: { location: `${url.origin}/entrar?erro=suspensa` } });
     }
+
+    const role = await ensureRoleFromConfig(db, user, cfg);
+    const ent = await ensureEntitlement(db, user.id, cfg);
 
     const token = randomHex(TOKEN_BYTES);
     await db.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(token, user.id, now, now + SESSION_TTL_MS).run();
@@ -1036,8 +1451,7 @@ export function createApp({ db, env = {} }) {
   /* -------- dispatcher -------- */
   return {
     async fetch(request) {
-      const ctx = {};
-      ctx.ip = clientIp(request, cfg);
+      const ctx = { request, ip: clientIp(request, cfg) };
       const url = new URL(request.url);
       const method = request.method.toUpperCase();
 
@@ -1045,17 +1459,24 @@ export function createApp({ db, env = {} }) {
         return json({ ok: false, error: 'Origem não permitida.' }, 403);
       }
 
-      const handler = router.get(`${method} ${url.pathname}`);
+      const handler = router.get(`${method} ${url.pathname}`) || dynamicRoutes.find((r) => r.method === method && r.re.test(url.pathname))?.handler;
       if (!handler) {
         if (url.pathname.startsWith('/api/')) {
           if (method === 'OPTIONS') {
             return new Response(null, { status: 204, headers: corsFor(request, cfg) || {} });
           }
-          return json({ ok: false, error: 'Rota não encontrada.' }, 404);
+          return json({ ok: false, error: 'Rota não encontrada.' }, 404, corsFor(request, cfg));
         }
         return new Response('Não encontrado', { status: 404 });
       }
+
       try {
+        /* Resolve a sessão UMA vez, antes de qualquer handler, e coloca em
+           ctx.auth. Só toca no banco se houver cookie de sessão — visitante
+           anônimo não paga uma consulta extra por requisição. Rotas com
+           prefixo dinâmico (PATCH /api/admin/...) não estão no Map, então
+           entram pelo mesmo caminho e recebem o mesmo tratamento. */
+        ctx.auth = await resolveAuth(request);
         return await handler(request, ctx);
       } catch (err) {
         console.error('[central] handler error:', err);

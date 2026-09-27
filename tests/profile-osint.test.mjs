@@ -26,8 +26,25 @@ function makeEnv(overrides = {}) {
   };
 }
 
+/* As rotas de busca agora exigem sessao (enforcement no servidor): os testes
+   rodam como uma conta gratuita criada uma vez por suite. */
+let authCookie = null;
+
+async function session() {
+  if (authCookie) return authCookie;
+  const res = await app.fetch(new Request('https://central.test/api/auth/register', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Busca User', email: 'busca@teste.com', password: 'senha-forte-123' }),
+  }));
+  const c = (res.headers.get('set-cookie') || '').split(';')[0];
+  if (!c) throw new Error('sessao de teste nao criada');
+  authCookie = c;
+  return c;
+}
+
 async function call(path, body, origin) {
-  const headers = { 'content-type': 'application/json' };
+  const headers = { 'content-type': 'application/json', cookie: await session() };
   if (origin) headers.origin = origin;
   const res = await app.fetch(
     new Request('https://central.test' + path, {

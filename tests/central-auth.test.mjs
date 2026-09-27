@@ -250,6 +250,7 @@ test('admin regainido por e-mail na lista mesmo com plano antigo', async () => {
   });
   assert.equal(reg.res.status, 201);
   assert.equal(reg.data.user.plan, 'FREE');
+  assert.equal(reg.data.user.role, 'user');
   const token = sessionTokenFrom(reg.res.headers.get('set-cookie'));
   const cookie = `sam_session=${encodeURIComponent(token)}`;
 
@@ -260,18 +261,128 @@ test('admin regainido por e-mail na lista mesmo com plano antigo', async () => {
   // O dono adiciona o e-mail em ADMIN_EMAILS depois do cadastro. Em produção
   // o Worker recria o app a cada request, então o novo cfg já enxerga a lista.
   const app = createApp({ db, env: { ...makeEnv(), ADMIN_EMAILS: 'chefe@central.com' } });
-  const callNew = async (path) => {
-    const req = new Request(`${BASE}${path}`, { headers: { cookie } });
+  const callNew = async (path, method = 'GET') => {
+    const req = new Request(`${BASE}${path}`, { method, headers: { cookie, 'content-type': 'application/json' }, body: method === 'POST' ? '{}' : undefined });
     const res = await app.fetch(req);
     return { res, data: res.headers.get('content-type')?.includes('json') ? await res.json() : null };
   };
 
   const me = await callNew('/api/auth/me');
-  assert.equal(me.data.user.plan, 'ADMIN', 'e-mail em ADMIN_EMAILS deve conceder admin');
+  // A ADMIN_EMAILS concede a ROLE, não um plano. `plan` continua sendo o plano
+  // comercial (free/pro) — nunca mais 'ADMIN'.
+  assert.equal(me.data.user.role, 'admin', 'e-mail em ADMIN_EMAILS deve conceder a role admin');
+  assert.equal(me.data.user.isAdmin, true);
+  assert.equal(me.data.user.plan, 'FREE', 'role e plano são independentes: admin sem compra continua FREE');
+
+  // Mesmo com plano FREE, a role admin dá acesso total (é o que a role significa).
+  const gate = await callNew('/api/access/check', 'POST');
+  assert.equal(gate.data.plan, 'ADMIN', 'a role define o teto de acesso');
+  assert.equal(gate.data.role, 'admin');
+  assert.equal(gate.data.isAdmin, true);
 
   const users = await callNew('/api/admin/users');
   assert.equal(users.res.status, 200, 'painel admin deve destravar');
   assert.equal(users.data.users.length, 1);
+});
+
+test('plano admin antigo NÃO concede mais acesso administrativo (bug das 2 contas)', async () => {
+  // Cenário real de produção: o e-mail saiu de ADMIN_EMAILS mas ficou
+  // entitlements.plan='admin' gravado. Antes isso mantinha a conta
+  // administrativa para sempre.
+  freshApp('stale', {});
+  const reg = await call('stale', '/api/auth/register', {
+    method: 'POST',
+    body: { name: 'Conta Antiga', email: 'daniamo2026@gmail.com', password: 'senha-segura-123' },
+  });
+  const token = sessionTokenFrom(reg.res.headers.get('set-cookie'));
+  const cookie = `sam_session=${encodeURIComponent(token)}`;
+  const { db } = apps[handlerName('stale')];
+  const user = await db.prepare('SELECT id FROM users WHERE email = ?').bind('daniamo2026@gmail.com').first();
+
+  // Estado herdado do bug: plano 'admin' gravado, role inexistente antes da migração.
+  await db._exec("UPDATE entitlements SET plan = 'admin' WHERE user_id = '" + user.id + "'");
+  await db._exec("UPDATE users SET role = 'user' WHERE id = '" + user.id + "'");
+
+  const me = await call('stale', '/api/auth/me', { cookie });
+  assert.equal(me.data.user.role, 'user', 'plano admin não pode virar role');
+  assert.equal(me.data.user.isAdmin, false);
+  // O plano vira 'pro': a conta não é removida e mantém acesso de ferramenta.
+  assert.equal(me.data.user.entitlement.plan, 'pro');
+
+  const denied = await call('stale', '/api/admin/users', { cookie });
+  assert.equal(denied.res.status, 403, 'conta com plano antigo perdeu o painel');
+});
+
+test('admin pode conceder e revogar a role pelo painel', async () => {
+  freshApp('grant', { ADMIN_EMAILS: 'boss@grant.com' });
+  const boss = await register('grant', { name: 'Boss', email: 'boss@grant.com', password: 'senha-admin-123' });
+  assert.equal(boss.data.user.role, 'admin');
+  void boss;
+
+  const { headers } = await call('grant', '/api/auth/login', {
+    method: 'POST',
+    body: { email: 'boss@grant.com', password: 'senha-admin-123' },
+  });
+  const cookie = `sam_session=${encodeURIComponent(sessionTokenFrom(headers.get('set-cookie')))}`;
+
+  const alvo = await register('grant', { name: 'Alvo', email: 'alvo@grant.com', password: 'senha-alvo-123' });
+  const alvoId = alvo.data.user.id;
+  const alvoCookie = `sam_session=${encodeURIComponent(sessionTokenFrom(
+    (await call('grant', '/api/auth/login', { method: 'POST', body: { email: 'alvo@grant.com', password: 'senha-alvo-123' } })).headers.get('set-cookie')
+  ))}`;
+
+  // Grant
+  const granted = await call('grant', `/api/admin/users/${alvoId}`, {
+    method: 'PATCH',
+    cookie,
+    body: { role: 'admin' },
+  });
+  assert.equal(granted.res.status, 200);
+  assert.equal(granted.data.user.role, 'admin');
+  const nowAdmin = await call('grant', '/api/admin/users', { cookie: alvoCookie });
+  assert.equal(nowAdmin.res.status, 200, 'role concedida libera o painel');
+
+  // Revoke (sem apagar a conta)
+  const revoked = await call('grant', `/api/admin/users/${alvoId}`, {
+    method: 'PATCH',
+    cookie,
+    body: { role: 'user' },
+  });
+  assert.equal(revoked.res.status, 200);
+  assert.equal(revoked.data.user.role, 'user');
+  const nowUser = await call('grant', '/api/admin/users', { cookie: alvoCookie });
+  assert.equal(nowUser.res.status, 403, 'role revogada tranca o painel');
+  assert.equal(nowUser.res.status !== 404, true, 'a conta continua existindo');
+});
+
+test('admin não pode remover a própria role nem se suspender', async () => {
+  freshApp('selfguard', { ADMIN_EMAILS: 'boss@self.com' });
+  const boss = await register('selfguard', { name: 'Boss', email: 'boss@self.com', password: 'senha-admin-123' });
+  const { headers } = await call('selfguard', '/api/auth/login', {
+    method: 'POST',
+    body: { email: 'boss@self.com', password: 'senha-admin-123' },
+  });
+  const cookie = `sam_session=${encodeURIComponent(sessionTokenFrom(headers.get('set-cookie')))}`;
+
+  const drop = await call('selfguard', `/api/admin/users/${boss.data.user.id}`, { method: 'PATCH', cookie, body: { role: 'user' } });
+  assert.equal(drop.res.status, 400, 'trava: não pode ficar sem painel por engano');
+  const susp = await call('selfguard', `/api/admin/users/${boss.data.user.id}`, { method: 'PATCH', cookie, body: { status: 'suspended' } });
+  assert.equal(susp.res.status, 400, 'trava: não pode suspender a própria conta');
+});
+
+test('conta suspensa não entra e tem a sessão encerrada', async () => {
+  freshApp('susp', { ADMIN_EMAILS: 'boss@susp.com' });
+  await register('susp', { name: 'Boss', email: 'boss@susp.com', password: 'senha-admin-123' });
+  const alvo = await register('susp', { name: 'Alvo', email: 'alvo@susp.com', password: 'senha-alvo-123' });
+  const { headers } = await call('susp', '/api/auth/login', { method: 'POST', body: { email: 'boss@susp.com', password: 'senha-admin-123' } });
+  const cookie = `sam_session=${encodeURIComponent(sessionTokenFrom(headers.get('set-cookie')))}`;
+
+  const r = await call('susp', `/api/admin/users/${alvo.data.user.id}`, { method: 'PATCH', cookie, body: { status: 'suspended' } });
+  assert.equal(r.res.status, 200);
+  assert.equal(r.data.user.account_status, 'suspended');
+
+  const login = await call('susp', '/api/auth/login', { method: 'POST', body: { email: 'alvo@susp.com', password: 'senha-alvo-123' } });
+  assert.equal(login.res.status, 403, 'conta suspensa não autentica');
 });
 
 test('rate limit bloqueia tentativas sucessivas de login', async () => {
@@ -299,8 +410,11 @@ test('e-mail de admin em ADMIN_EMAILS vira conta ADMIN', async () => {
     password: 'senha-admin-123',
   });
   assert.equal(res.status, 201);
-  assert.equal(data.user.plan, 'ADMIN');
-  assert.equal(data.user.planLabel, 'Acesso administrativo');
+  // Role administrativa vem da configuração; o plano segue sendo free/pro.
+  assert.equal(data.user.role, 'admin');
+  assert.equal(data.user.isAdmin, true);
+  assert.notEqual(data.user.plan, 'ADMIN', 'admin deixou de ser um plano');
+  assert.equal(data.user.planLabel, 'Plano gratuito', 'admin não ganha plano comercial: o acesso vem da role');
 });
 
 test('admin pode listar usuários; não-admin é negado', async () => {

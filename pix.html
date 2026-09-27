@@ -65,6 +65,7 @@
         <span class="logo-mark" aria-hidden="true">SA</span>
         <span><b>SR. AMORIM</b><small>CENTRAL AMORIM</small></span>
       </a>
+      <div class="auth-slot tool-auth-slot" data-auth></div>
       <a class="back" href="/">← Voltar</a>
     </header>
 
@@ -108,8 +109,17 @@
     <p class="footer"><b>© 2026 Sr. Amorim — Daniel Amorim</b> · Todos os direitos reservados</p>
   </div>
 
-  <script>
-    (function () {
+  <script type="module">
+
+    // Sessão real da Central: quem está logado e qual o plano.
+
+    // Antes destas páginas não tinham nenhum notion de sessão.
+
+    import { renderAuthSlot } from "/src/js/auth.js";
+
+    renderAuthSlot();
+
+  </script>    (function () {
       'use strict';
 
       var cfg = null;

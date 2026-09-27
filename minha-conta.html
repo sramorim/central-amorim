@@ -52,7 +52,7 @@
 
     <section class="page-content">
       <div class="container">
-        <div class="account-ready" id="account-view">
+        <div class="account-ready hidden" id="account-view">
           <div class="account-shell" id="account-shell">
             <div class="account-avatar" id="account-avatar" aria-hidden="true">?</div>
             <div class="account-info">
@@ -132,7 +132,7 @@
           </div>
         </div>
 
-        <div class="account-loading hidden" id="account-loading">
+        <div class="account-loading" id="account-loading">
           <p>Carregando sua conta…</p>
         </div>
       </div>
@@ -181,42 +181,47 @@
     const view = document.getElementById('account-view');
     const loading = document.getElementById('account-loading');
 
-    const planLabels = { FREE: 'Plano gratuito', PRO: 'Plano PRO', ADMIN: 'Acesso administrativo' };
-    const planClasses = { FREE: 'plan-pill--free', PRO: 'plan-pill--pro', ADMIN: 'plan-pill--admin' };
-    const planOrder = { FREE: 1, PRO: 2, ADMIN: 3 };
+    /* O plano e o que a pessoa comprou; a role e o que a pessoa administra.
+       Sao coisas separadas: admin nao tem PRO, e PRO nao da painel. */
+    const planClasses = { FREE: 'plan-pill--free', PRO: 'plan-pill--pro' };
 
     (async () => {
       const { ok, data } = await requireAuth('/minha-conta');
       if (!ok) return;
 
+      loading.classList.add('hidden');
       view.classList.remove('hidden');
       const u = data.user;
-      const plan = u.plan && planLabels[u.plan] ? u.plan : 'FREE';
+      const plan = u.plan === 'PRO' ? 'PRO' : 'FREE';
       const initial = (u.name || u.email || '?').trim().charAt(0).toUpperCase();
 
       document.getElementById('account-avatar').textContent = initial;
       document.getElementById('account-name').textContent = u.name;
       document.getElementById('account-email').textContent = u.email;
-      document.getElementById('account-meta').textContent = `Conta criada em ${new Date(u.createdAt).toLocaleDateString('pt-BR')}`;
+      const roleNote = u.isAdmin ? ' · administrador' : '';
+      document.getElementById('account-meta').textContent =
+        `Conta criada em ${new Date(u.createdAt).toLocaleDateString('pt-BR')}${roleNote}`;
       document.getElementById('account-plan').querySelector('.plan-pill').textContent = plan;
       document.getElementById('plan-pill').className = `plan-pill ${planClasses[plan] || 'plan-pill--free'}`;
-      document.getElementById('account-status').textContent = u.status === 'active' ? 'ativo' : u.status;
+      const contaStatus = u.accountStatus === 'suspended' ? 'suspensa' : 'ativa';
+      document.getElementById('account-status').textContent = contaStatus;
 
       const planTag = document.getElementById('plan-tag');
       const planBox = document.getElementById('account-plan-box');
+      const adminLine = u.isAdmin
+        ? '<span>Você administra a Central, então acessa todas as ferramentas. Isso vem da sua role de administrador, não de um plano pago.</span>'
+        : '';
       if (plan === 'PRO') {
         planTag.innerHTML = '<span class="account-tag account-tag--pro">Vitalício &#10003;</span>';
         planBox.innerHTML =
-          '<strong>Você já é PRO.</strong><span>Pagamento único confirmado · acesso vitalício a todas as ferramentas liberadas.</span>';
-      } else if (plan === 'ADMIN') {
-        planTag.innerHTML = '<span class="account-tag account-tag--admin">Administrador</span>';
-        planBox.innerHTML =
-          '<strong>Conta administrativa.</strong><span>Você gerencia a Central e tem todos os benefícios do PRO.</span>';
+          '<strong>Você já é PRO.</strong><span>Pagamento único confirmado · acesso vitalício a todas as ferramentas liberadas.</span>' + adminLine;
       } else {
-        planTag.innerHTML = '<a class="account-tag account-tag--link" href="/pix">Ativar PRO · R$ 9,99</a>';
+        planTag.innerHTML = u.isAdmin
+          ? '<span class="account-tag account-tag--admin">Administrador</span>'
+          : '<a class="account-tag account-tag--link" href="/pix">Ativar PRO · R$ 9,99</a>';
         planBox.innerHTML =
-          '<strong>Plano gratuito ativo.</strong><span>As ferramentas já funcionam na sua conta.<br />O PRO destrava tudo que for lançado — pagamento único de R$ 9,99 via Pix, vitalício.</span>' +
-          '<a class="btn btn-primary" href="/pix">Quero o PRO</a>';
+          '<strong>Plano gratuito.</strong><span>As ferramentas já funcionam na sua conta.<br />O PRO destrava tudo que for lançado — pagamento único de R$ 9,99 via Pix, vitalício.</span>' +
+          (u.isAdmin ? adminLine : '<a class="btn btn-primary" href="/pix">Quero o PRO</a>');
       }
 
       document.getElementById('logout-btn').addEventListener('click', async () => {

@@ -9,26 +9,41 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root { --bg:#0b0f19; --panel:#111827; --panel-2:#151d2f; --line:rgba(255,255,255,.08); --text:#ecf1f8; --muted:#94a3b8; --accent:#2b6bff; --ok:#34d399; --danger:#f87171; }
+    :root { --bg:#0b0f19; --panel:#111827; --panel-2:#151d2f; --line:rgba(255,255,255,.08); --text:#ecf1f8; --muted:#94a3b8; --accent:#2b6bff; --ok:#34d399; --danger:#f87171; --warn:#fbbf24; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; padding: 28px 18px 64px; }
-    .wrap { max-width: 860px; margin: 0 auto; }
-    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+    .wrap { max-width: 1080px; margin: 0 auto; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; flex-wrap: wrap; gap: 12px; }
     h1 { font-size: 22px; }
+    h2 { font-size: 15px; margin: 26px 0 10px; }
     a { color: var(--accent); text-decoration: none; }
     .btn { background: linear-gradient(135deg, var(--accent), #7c5cff); border: none; color: #fff; font-weight: 700; font-size: 12px; padding: 8px 14px; border-radius: 10px; cursor: pointer; }
     .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
     .btn.ok { background: var(--ok); color: #062b33; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
     table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 12px; }
     th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
     th { background: var(--panel-2); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-    .chip { border-radius: 999px; padding: 3px 10px; font-weight: 700; font-size: 11px; }
-    .chip.pending { background: rgba(251,191,36,.14); color: #fbbf24; }
+    tr:last-child td { border-bottom: none; }
+    .chip { border-radius: 999px; padding: 3px 10px; font-weight: 700; font-size: 11px; display: inline-block; }
+    .chip.pending { background: rgba(251,191,36,.14); color: var(--warn); }
     .chip.activated { background: rgba(52,211,153,.14); color: var(--ok); }
+    .chip.admin { background: rgba(251,191,36,.16); color: var(--warn); }
+    .chip.suspended { background: rgba(248,113,113,.14); color: var(--danger); }
+    .chip.user, .chip.free { background: rgba(148,163,184,.14); color: var(--muted); }
+    .chip.pro { background: rgba(52,211,153,.14); color: var(--ok); }
+    select { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 12px; cursor: pointer; }
+    select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
     .empty { color: var(--muted); font-size: 13px; padding: 18px; }
     .msg { font-size: 12px; margin-top: 10px; }
     .msg.err { color: var(--danger); }
     .msg.ok { color: var(--ok); }
+    .diag { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+    .diag-item { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 11px; color: var(--muted); }
+    .diag-item b { display: block; color: var(--text); font-size: 16px; margin-top: 2px; }
+    .diag-item.warn b { color: var(--warn); }
+    .hint { color: var(--muted); font-size: 11px; margin: 6px 0 10px; }
+    .scroll { overflow-x: auto; }
     .footer { margin-top: 30px; color: var(--muted); font-size: 11px; text-align: center; border-top: 1px solid var(--line); padding-top: 12px; }
   </style>
 </head>
@@ -39,16 +54,46 @@
       <div>
         <a class="btn ghost" href="/">← Central</a>
         <a class="btn ghost" href="/pix" style="margin-left:8px;">Ver /pix</a>
+        <a class="btn ghost" href="/minha-conta" style="margin-left:8px;">Minha conta</a>
       </div>
     </header>
 
     <div class="msg" id="status"></div>
-    <table id="orders-table" hidden>
-      <thead>
-        <tr><th>Pedido</th><th>Cliente</th><th>E-mail</th><th>Valor</th><th>Status</th><th>Criado</th><th>Ação</th></tr>
-      </thead>
-      <tbody id="orders-body"></tbody>
-    </table>
+    <div class="diag" id="diag" hidden></div>
+
+    <h2>Contas</h2>
+    <p class="hint">A <b>role</b> dá acesso a este painel. O <b>plano</b> dá acesso às ferramentas. Trocar um não mexe no outro — inclusive, admin não ganha plano pago.</p>
+    <div class="scroll">
+      <table id="users-table" hidden>
+        <thead>
+          <tr><th>Conta</th><th>E-mail</th><th>Role</th><th>Plano</th><th>Status</th><th>Criada</th></tr>
+        </thead>
+        <tbody id="users-body"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="users-empty" hidden>Nenhuma conta cadastrada.</div>
+
+    <h2>Ferramentas</h2>
+    <p class="hint">Publicação, plano mínimo e bloqueio ficam aqui e valem na hora, sem novo deploy. "Livre" = visitante sem conta; "Grátis" = conta gratuita; "PRO" = plano pago. O cadeado do site e a trava da API leem isto.</p>
+    <div class="scroll">
+      <table id="tools-table" hidden>
+        <thead>
+          <tr><th>Ferramenta</th><th>Tipo</th><th>Plano mínimo</th><th>Status</th><th>Posição</th></tr>
+        </thead>
+        <tbody id="tools-body"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="tools-empty" hidden>Nenhuma ferramenta cadastrada.</div>
+
+    <h2>Pedidos</h2>
+    <div class="scroll">
+      <table id="orders-table" hidden>
+        <thead>
+          <tr><th>Pedido</th><th>Cliente</th><th>E-mail</th><th>Valor</th><th>Status</th><th>Criado</th><th>Ação</th></tr>
+        </thead>
+        <tbody id="orders-body"></tbody>
+      </table>
+    </div>
     <div class="empty" id="orders-empty" hidden>Sem pedidos ainda.</div>
 
     <p class="footer"><b>© 2026 Sr. Amorim — Daniel Amorim</b> · Todos os direitos reservados · uso interno</p>
@@ -59,11 +104,21 @@
       'use strict';
 
       var $ = function (id) { return document.getElementById(id); };
+      var ROLE_VALUES = ['user', 'admin'];
+      var STATUS_VALUES = ['active', 'suspended'];
+      var PLAN_VALUES = ['free', 'pro'];
+      var TOOL_STATUS_VALUES = ['published', 'draft', 'blocked'];
+      var TOOL_PLAN_VALUES = ['guest', 'free', 'pro'];
+      var me = null;
 
       function status(msg, kind) {
         var el = $('status');
         el.textContent = msg;
         el.className = 'msg ' + (kind || '');
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       }
 
       function fmtDate(ts) {
@@ -75,72 +130,234 @@
         return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       }
 
-      function load() {
-        status('Carregando pedidos…');
-        fetch('/api/orders', { credentials: 'same-origin' })
-          .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+      function options(values, current) {
+        return values.map(function (v) {
+          return '<option value="' + escapeHtml(v) + '"' + (v === current ? ' selected' : '') + '>' + escapeHtml(v) + '</option>';
+        }).join('');
+      }
+
+      function api(path, opts) {
+        var o = opts || {};
+        return fetch(path, {
+          method: o.method || 'GET',
+          credentials: 'same-origin',
+          headers: o.body ? { 'content-type': 'application/json' } : undefined,
+          body: o.body ? JSON.stringify(o.body) : undefined
+        }).then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d }; });
+        });
+      }
+
+      function requireAdmin(res) {
+        if (res.status === 401 || res.status === 403) {
+          $('diag').hidden = true;
+          $('users-table').hidden = true;
+          $('tools-table').hidden = true;
+          $('orders-table').hidden = true;
+          $('status').innerHTML = 'Esta área é só para conta administrativa. <a href="/entrar">Entrar</a>';
+          return true;
+        }
+        return false;
+      }
+
+      /* ---- diagnóstico: resposta curta para "por que isso não funciona?" ---- */
+      function loadDiag() {
+        api('/api/admin/diagnostics').then(function (res) {
+          if (requireAdmin(res)) return;
+          if (!res.data || !res.data.ok) return;
+          var db = res.data.database || {};
+          var items = [
+            { label: 'Contas', value: db.users },
+            { label: 'Admins', value: db.admins },
+            { label: 'Planos legados "admin"', value: db.legacyAdminPlans, warn: true },
+            { label: 'Suspendidas', value: db.suspended },
+            { label: 'PRO', value: db.withPro },
+            { label: 'Ferramentas', value: db.tools }
+          ].filter(function (i) { return i.value != null && typeof i.value !== 'string'; });
+          $('diag').innerHTML = items.map(function (i) {
+            return '<div class="diag-item' + (i.warn && Number(i.value) > 0 ? ' warn' : '') + '">' + escapeHtml(i.label) + '<b>' + escapeHtml(i.value) + '</b></div>';
+          }).join('');
+          $('diag').hidden = items.length === 0;
+
+          var pending = res.data.pending || [];
+          if (pending.length) {
+            status('Segredos ausentes no Worker: ' + pending.join(', ') + '. Sem eles a ferramenta que depende da chave falha, mas o resto do site continua. See o diagnóstico abaixo.', 'err');
+          } else if (db.legacyAdminPlans > 0) {
+            status('Ainda há ' + db.legacyAdminPlans + ' conta(s) com o plano legado "admin". Abra uma conta admin e rebaixe abaixo — a role é que dá o painel.', 'err');
+          }
+        });
+      }
+
+      /* ---- contas ---- */
+      function loadUsers() {
+        api('/api/admin/users').then(function (res) {
+          if (requireAdmin(res)) return;
+          if (!res.data || !res.data.ok) return status('Erro ao carregar contas.', 'err');
+          var users = res.data.users || [];
+          if (!users.length) {
+            $('users-empty').hidden = false;
+            $('users-table').hidden = true;
+            return;
+          }
+          $('users-empty').hidden = true;
+          $('users-table').hidden = false;
+
+          var body = $('users-body');
+          body.innerHTML = '';
+          users.forEach(function (u) {
+            var isMe = me && u.id === me.id;
+            var plan = PLAN_VALUES.indexOf(u.plan) === -1 ? 'free' : u.plan;
+            var accountStatus = u.account_status === 'suspended' ? 'suspended' : 'active';
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+              '<td><b>' + escapeHtml(u.name || '—') + '</b>' +
+                (u.avatar ? '<br><img src="' + escapeHtml(u.avatar) + '" alt="" width="24" height="24" style="border-radius:50%">' : '') +
+                (isMe ? '<br><span class="chip admin">você</span>' : '') + '</td>' +
+              '<td>' + escapeHtml(u.email) + '</td>' +
+              '<td><span class="chip ' + (u.role === 'admin' ? 'admin' : 'user') + '">' + escapeHtml(u.role || 'user') + '</span>' +
+                (isMe ? '<br><span class="hint">não pode rebaixar a si mesmo</span>' : '') + '</td>' +
+              '<td><select data-user="' + escapeHtml(u.id) + '" data-field="plan"' + (isMe ? ' title="Plano comercial: para si, isso não muda seu acesso de admin"' : '') + '>' + options(PLAN_VALUES, plan) + '</select></td>' +
+              '<td><select data-user="' + escapeHtml(u.id) + '" data-field="status"' + (isMe ? ' disabled title="Você não pode suspender a própria conta"' : '') + '>' + options(STATUS_VALUES, accountStatus) + '</select></td>' +
+              '<td>' + fmtDate(u.created_at) + '</td>';
+            body.appendChild(tr);
+          });
+
+          body.querySelectorAll('select[data-user]').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+              patchUser(sel);
+            });
+          });
+        });
+      }
+
+      function patchUser(sel) {
+        var id = sel.getAttribute('data-user');
+        var field = sel.getAttribute('data-field');
+        var previous = field === 'plan' ? 'free' : 'active';
+        sel.disabled = true;
+        api('/api/admin/users/' + encodeURIComponent(id), { method: 'PATCH', body: (function () { var b = {}; b[field] = sel.value; return b; })() })
           .then(function (res) {
-            if (res.status === 401) {
-              status('Faça login como administrador para acessar o painel.', 'err');
-              $('status').innerHTML = 'Faça login como administrador para acessar o painel. <a href="/entrar">Entrar</a>';
-              return;
+            sel.disabled = false;
+            if (res.status === 200) {
+              status((res.data.changed && Object.keys(res.data.changed).join(', ')) + ' atualizado em ' + sel.value + '.', 'ok');
+              loadDiag();
+            } else {
+              sel.value = previous;
+              status((res.data && res.data.error) || 'Não foi possível atualizar a conta.', 'err');
             }
-            if (res.status === 403) return status('Acesso negado (necessário conta administrativa).', 'err');
-            if (!res.data || !res.data.ok) return status('Erro ao carregar pedidos.', 'err');
-
-            var orders = res.data.orders || [];
-            if (!orders.length) {
-              $('orders-empty').hidden = false;
-              $('orders-table').hidden = true;
-              status('');
-              return;
-            }
-            $('orders-empty').hidden = true;
-            $('orders-table').hidden = false;
-
-            var body = $('orders-body');
-            body.innerHTML = '';
-            orders.forEach(function (o) {
-              var tr = document.createElement('tr');
-              var actions = '';
-              if (o.status === 'pending') {
-                actions = '<button type="button" class="btn ok" data-code="' + escapeHtml(o.code) + '">Ativar PRO</button>';
-              }
-              tr.innerHTML =
-                '<td><b>' + escapeHtml(o.code) + '</b></td>' +
-                '<td>' + escapeHtml(o.name) + '</td>' +
-                '<td>' + escapeHtml(o.email) + '</td>' +
-                '<td>' + fmtValor(o.amount) + '</td>' +
-                '<td><span class="chip ' + (o.status === 'activated' ? 'activated' : 'pending') + '">' + escapeHtml(o.status) + '</span></td>' +
-                '<td>' + fmtDate(o.created_at) + '</td>' +
-                '<td>' + actions + '</td>';
-              body.appendChild(tr);
-            });
-
-            body.querySelectorAll('button[data-code]').forEach(function (btn) {
-              btn.addEventListener('click', function () {
-                activate(btn.getAttribute('data-code'), btn);
-              });
-            });
-            status('');
           })
-          .catch(function () { status('Erro de conexão.', 'err'); });
+          .catch(function () {
+            sel.disabled = false;
+            sel.value = previous;
+            status('Erro de conexão.', 'err');
+          });
+      }
+
+      /* ---- ferramentas ---- */
+      function loadTools() {
+        api('/api/admin/tools').then(function (res) {
+          if (requireAdmin(res)) return;
+          if (!res.data || !res.data.ok) return status('Erro ao carregar ferramentas.', 'err');
+          var tools = res.data.tools || [];
+          if (!tools.length) {
+            $('tools-empty').hidden = false;
+            $('tools-table').hidden = true;
+            return;
+          }
+          $('tools-empty').hidden = true;
+          $('tools-table').hidden = false;
+
+          var body = $('tools-body');
+          body.innerHTML = '';
+          tools.forEach(function (t) {
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+              '<td><b>' + escapeHtml(t.name) + '</b><br><span class="hint">' + escapeHtml(t.id) + (t.note ? ' · ' + escapeHtml(t.note) : '') + '</span></td>' +
+              '<td>' + escapeHtml(t.kind) + '</td>' +
+              '<td><select data-tool="' + escapeHtml(t.id) + '" data-field="minPlan">' + options(TOOL_PLAN_VALUES, t.minPlan) + '</select></td>' +
+              '<td><select data-tool="' + escapeHtml(t.id) + '" data-field="status">' + options(TOOL_STATUS_VALUES, t.status) + '</select></td>' +
+              '<td>' + escapeHtml(t.position) + '</td>';
+            body.appendChild(tr);
+          });
+
+          body.querySelectorAll('select[data-tool]').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+              patchTool(sel);
+            });
+          });
+        });
+      }
+
+      function patchTool(sel) {
+        var id = sel.getAttribute('data-tool');
+        var field = sel.getAttribute('data-field');
+        sel.disabled = true;
+        api('/api/admin/tools/' + encodeURIComponent(id), { method: 'PATCH', body: (function () { var b = {}; b[field] = sel.value; return b; })() })
+          .then(function (res) {
+            sel.disabled = false;
+            if (res.status === 200) {
+              status(id + ': ' + field + ' = ' + sel.value + '.', 'ok');
+            } else {
+              status((res.data && res.data.error) || 'Não foi possível atualizar a ferramenta.', 'err');
+            }
+            loadTools();
+          })
+          .catch(function () {
+            sel.disabled = false;
+            status('Erro de conexão.', 'err');
+          });
+      }
+
+      /* ---- pedidos ---- */
+      function loadOrders() {
+        api('/api/orders').then(function (res) {
+          if (requireAdmin(res)) return;
+          if (!res.data || !res.data.ok) return status('Erro ao carregar pedidos.', 'err');
+
+          var orders = res.data.orders || [];
+          if (!orders.length) {
+            $('orders-empty').hidden = false;
+            $('orders-table').hidden = true;
+            return;
+          }
+          $('orders-empty').hidden = true;
+          $('orders-table').hidden = false;
+
+          var body = $('orders-body');
+          body.innerHTML = '';
+          orders.forEach(function (o) {
+            var tr = document.createElement('tr');
+            var actions = '';
+            if (o.status === 'pending') {
+              actions = '<button type="button" class="btn ok" data-code="' + escapeHtml(o.code) + '">Ativar PRO</button>';
+            }
+            tr.innerHTML =
+              '<td><b>' + escapeHtml(o.code) + '</b></td>' +
+              '<td>' + escapeHtml(o.name) + '</td>' +
+              '<td>' + escapeHtml(o.email) + '</td>' +
+              '<td>' + fmtValor(o.amount) + '</td>' +
+              '<td><span class="chip ' + (o.status === 'activated' ? 'activated' : 'pending') + '">' + escapeHtml(o.status) + '</span></td>' +
+              '<td>' + fmtDate(o.created_at) + '</td>' +
+              '<td>' + actions + '</td>';
+            body.appendChild(tr);
+          });
+
+          body.querySelectorAll('button[data-code]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              activate(btn.getAttribute('data-code'), btn);
+            });
+          });
+        });
       }
 
       function activate(code, btn) {
         btn.disabled = true;
         btn.textContent = 'Ativando…';
-        fetch('/api/orders/activate', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ code: code }),
-        })
-          .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+        api('/api/orders/activate', { method: 'POST', body: { code: code } })
           .then(function (res) {
             if (res.status === 200) {
               status('Pedido ' + code + ' ativado. PRO liberado para o e-mail do cliente.', 'ok');
-              load();
+              loadOrders();
             } else {
               btn.disabled = false;
               btn.textContent = 'Ativar PRO';
@@ -154,11 +371,26 @@
           });
       }
 
-      function escapeHtml(s) {
-        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      function boot() {
+        api('/api/auth/me').then(function (res) {
+          if (!res.data || !res.data.authenticated) {
+            $('status').innerHTML = 'Faça login como administrador para acessar o painel. <a href="/entrar">Entrar</a>';
+            return;
+          }
+          me = res.data.user;
+          if (!me.isAdmin) {
+            $('status').innerHTML = 'Esta conta não é administrativa. <a href="/minha-conta">Ver minha conta</a>';
+            return;
+          }
+          status('');
+          loadDiag();
+          loadUsers();
+          loadTools();
+          loadOrders();
+        });
       }
 
-      load();
+      boot();
     })();
   </script>
 </body>

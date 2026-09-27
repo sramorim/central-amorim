@@ -429,7 +429,7 @@ async function searchEmail(email) {
 /* Instala as rotas                                                   */
 /* ------------------------------------------------------------------ */
 export function installSearchOsint(ctx) {
-  const { router, json, readBody, rateLimit, cfg, corsFor } = ctx;
+  const { router, json, readBody, rateLimit, cfg, corsFor, guard } = ctx;
 
   router.set('GET /api/search', async (request) => {
     return json({
@@ -480,41 +480,41 @@ export function installSearchOsint(ctx) {
     }
   };
 
-  router.set('POST /api/search', async (request, context) => {
+  router.set('POST /api/search', guard('search', async (request, context) => {
     const body = await readBody(request);
     const mode = (body?.type || body?.mode || 'username').toLowerCase();
     const value = body?.query ?? body?.search ?? body?.target ?? body?.email ?? body?.phone ?? '';
     if (!String(value).trim()) return json({ success: false, error: 'Informe o que deseja buscar.' }, 400, corsFor(request));
     return handle(mode, String(value).trim(), request, context);
-  });
+  }));
 
-  router.set('POST /api/search/username', async (request, context) => {
+  router.set('POST /api/search/username', guard('search', async (request, context) => {
     const body = await readBody(request);
     const value = body?.target ?? body?.username ?? body?.query ?? '';
     if (!String(value).trim()) return json({ success: false, error: 'Informe o username.' }, 400, corsFor(request));
     return handle('username', String(value).trim(), request, context);
-  });
+  }));
 
-  router.set('POST /api/search/name', async (request, context) => {
+  router.set('POST /api/search/name', guard('search', async (request, context) => {
     const body = await readBody(request);
     const value = body?.query ?? body?.name ?? body?.target ?? '';
     if (!String(value).trim()) return json({ success: false, error: 'Informe o nome.' }, 400, corsFor(request));
     return handle('name', String(value).trim(), request, context);
-  });
+  }));
 
-  router.set('POST /api/search/email', async (request, context) => {
+  router.set('POST /api/search/email', guard('search', async (request, context) => {
     const body = await readBody(request);
     const value = body?.email ?? body?.target ?? body?.query ?? '';
     if (!String(value).trim()) return json({ success: false, error: 'Informe o e-mail.' }, 400, corsFor(request));
     return handle('email', String(value).trim(), request, context);
-  });
+  }));
 
-  router.set('POST /api/search/phone', async (request, context) => {
+  router.set('POST /api/search/phone', guard('search', async (request, context) => {
     const body = await readBody(request);
     const value = body?.phone ?? body?.target ?? body?.query ?? '';
     if (!String(value).trim()) return json({ success: false, error: 'Informe o telefone.' }, 400, corsFor(request));
     return handle('phone', String(value).trim(), request, context);
-  });
+  }));
 }
 
 export const SEARCH_METADATA = { USERNAME_PLATFORMS: PLATFORMS.length, NAME_SEARCH: NAME_SEARCH.length };

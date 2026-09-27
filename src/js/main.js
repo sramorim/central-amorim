@@ -1,41 +1,25 @@
 import { projects, socialLinks } from './data.js';
 import { renderAuthSlot } from './auth.js';
+import { mountCatalog, projectCard } from './catalog.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-  renderProjects();
+document.addEventListener('DOMContentLoaded', async () => {
+  // O catálogo do servidor vem primeiro: é ele que diz o que está publicado e
+  // o que a pessoa pode usar. A sessão em paralelo, para o header já sair certo.
+  await Promise.all([mountCatalog(renderProjects), renderAuthSlot()]);
   renderSocialLinks();
   initMobileNav();
   initScrollReveal();
   initHeroCounters();
   initSmoothScroll();
   initHeaderScroll();
-  renderAuthSlot();
 });
 
 /* ---------- Render Projects ---------- */
 function renderProjects() {
   const grid = document.getElementById('projects-grid');
   if (!grid) return;
-
-  grid.innerHTML = projects
-    .map(
-      (p) => `
-    <article class="project-card${p.featured ? ' project-card--featured' : ''}">
-      <div class="project-card-top">
-        <div class="project-icon" aria-hidden="true">${p.icon}</div>
-        <span class="project-status status-${p.status}">${p.statusLabel}</span>
-      </div>
-      ${p.featured ? '<span class="project-pin">Principal</span>' : ''}
-      <h3 class="project-name">${p.name}</h3>
-      <span class="project-category">${p.category}</span>
-      <p class="project-summary">${p.summary || ''}</p>
-      <p class="project-description">${p.description}</p>
-      <a href="${p.url}" class="btn btn-${p.buttonStyle}" target="_blank" rel="noopener noreferrer">
-        ${p.urlLabel}
-      </a>
-    </article>`
-    )
-    .join('');
+  /* Cartões com cadeado de verdade: a Central decide. Ver src/js/catalog.js. */
+  grid.innerHTML = projects.map(projectCard).filter(Boolean).join('');
 }
 
 /* ---------- Render Social Links ---------- */

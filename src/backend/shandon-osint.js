@@ -81,13 +81,6 @@ function todayUtc() {
   return new Date().toISOString().slice(0, 10);
 }
 
-/* Mensagens do Actor que significam "esse perfil não existe / não é público",
-   e não "a consulta falhou". Sem esta distinção, um perfil inexistente
-   voltava como HTTP 500. */
-function isProfileAbsentMessage(msg) {
-  return /not found|couldn'?t find|could not find|does not exist|isn'?t available|is not available|no such|not available|private|doesn'?t exist/i.test(msg);
-}
-
 /* Mensagem de erro nao pode ir crua para o cliente: a do fetch costuma vir
    com a URL do provedor, o id do Actor e, em erro de autenticacao, trechos do
    proprio token. O detalhamento fica no log do Worker; o usuario ve algo
@@ -189,7 +182,7 @@ export async function runPhoneOsint(rawPhone) {
 }
 
 export function installShandonOsint(ctx) {
-  const { router, json, readBody, rateLimit, db, cfg, corsFor } = ctx;
+  const { router, json, readBody, rateLimit, db, cfg, corsFor, guard } = ctx;
 
   for (const path of Object.keys(METADATA)) {
     router.set(`GET /${path}`, async (request) => {
@@ -409,7 +402,7 @@ export function installShandonOsint(ctx) {
     return result;
   }
 
-  router.set('POST /api/whatsapp-lookup', async (request, context) => {
+  router.set('POST /api/whatsapp-lookup', guard('whatsapp-lookup', async (request, context) => {
     const rl = await rateLimit(`whatsapp:${context.ip}`, 10);
     if (!rl.ok) return json({ success: false, error: 'Muitas consultas. Aguarde um instante.' }, 429, corsFor(request));
     const body = await readBody(request);
@@ -422,7 +415,7 @@ export function installShandonOsint(ctx) {
     } catch (err) {
       return json({ success: false, error: publicError(err, 'consulta') }, 500, corsFor(request));
     }
-  });
+  }));
 
   /* ------------------------- Instagram Profundo ------------------------- */
   function usernameFromInput(raw) {
@@ -455,6 +448,10 @@ export function installShandonOsint(ctx) {
       if (res.status === 401 || res.status === 403 || res.status === 429) {
         throw new Error(`Apify respondeu ${res.status} (verifique APIFY_API_TOKEN)`);
       }
+      /* O modo sincrono do Apify devolve 201 quando o Actor ainda esta rodando
+         (o resultado nao ficou pronto a tempo). Nao e erro de perfil nem
+         falha fatal: o certo e avisar que ainda esta processando. */
+      if (res.status === 201) return { __pending: true };
       if (!res.ok) throw new Error(`Apify respondeu ${res.status}`);
       const text = (await res.text()).trim();
       if (!text) return null;
@@ -463,15 +460,15 @@ export function installShandonOsint(ctx) {
       const prof = items.find((i) => i && typeof i === 'object') || null;
       if (!prof) return null;
       if (prof.error) {
-        /* O Actor NAO usa HTTP de erro quando o perfil não existe: ele devolve
-           o item com a mensagem no campo `error` (ex.: "Profile not found").
-           Tratar isso como falha interna transformava uma resposta legitima
-           ("não existe") em HTTP 500, e o chamador não conseguia distinguir
-           erro de API de perfil inexistente. Só é erro de verdade quando a
-           mensagem fala de token, cota, limite ou falha do Actor. */
-        const msg = String(prof.error);
-        if (isProfileAbsentMessage(msg)) return null;
-        throw new Error(msg);
+        /* O Actor NAO usa HTTP de erro quando o perfil nao existe: ele devolve
+           o item com a mensagem no campo `error`. A lista de frases mudou a
+           cada versao do Actor, entao em vez de tentar adivinhar o texto,
+           qualquer erro do item vira "fonte nao respondeu de forma util" —
+           um desfecho proprio (HTTP 200), que o chamador distingue de perfil
+           inexistente. O detalhe real vai para o log do Worker, nunca para o
+           cliente. */
+        console.error('[apify-instagram] item com erro:', String(prof.error));
+        return { __providerError: String(prof.error).slice(0, 200) };
       }
 
       const posts = (Array.isArray(prof.latestPosts) ? prof.latestPosts : []).map((p) => ({
@@ -509,7 +506,7 @@ export function installShandonOsint(ctx) {
     }
   }
 
-  router.set('POST /api/instagram', async (request, context) => {
+  router.set('POST /api/instagram', guard('instagram', async (request, context) => {
     const rl = await rateLimit(`instagram:${context.ip}`, 5);
     if (!rl.ok) return json({ success: false, error: 'Muitas consultas. Aguarde um instante.' }, 429, corsFor(request));
     const body = await readBody(request);
@@ -532,18 +529,26 @@ export function installShandonOsint(ctx) {
     }
     try {
       const prof = await apifyInstagram(username, cfg);
-      if (!prof) {
-        return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', errors: ['Perfil não encontrado ou privado.'] } }, 200, corsFor(request));
+      if (prof && prof.__pending) {
+        return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', outcome: 'pending', errors: ['O Instagram ainda está processando esta consulta. Tente novamente em alguns segundos.'] } }, 200, corsFor(request));
       }
-      return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', profile: prof } }, 200, corsFor(request));
+      if (prof && prof.__providerError) {
+        /* Desfecho próprio: a fonte respondeu, mas sem dados utilizáveis. Não
+           é "perfil inexistente" e também não é erro interno. */
+        return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', outcome: 'provider_error', errors: ['A fonte do Instagram não retornou dados para esta consulta. Pode ser perfil inexistente ou bloqueio do Instagram.'] } }, 200, corsFor(request));
+      }
+      if (!prof) {
+        return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', outcome: 'not_found', errors: ['Perfil não encontrado ou privado.'] } }, 200, corsFor(request));
+      }
+      return json({ success: true, data: { username, configured: true, provider: 'apify-instagram', outcome: 'ok', profile: prof } }, 200, corsFor(request));
     } catch (err) {
-      return json({ success: false, error: publicError(err, 'consulta') }, 500, corsFor(request));
+      return json({ success: false, outcome: 'error', error: publicError(err, 'consulta') }, 500, corsFor(request));
     }
-  });
+  }));
 
   /* -------------------------- Phone OSINT -------------------------- */
   /* ------------------------- Phone OSINT ------------------------- */
-  router.set('POST /api/phone-osint', async (request, context) => {
+  router.set('POST /api/phone-osint', guard('phone-osint', async (request, context) => {
     const rl = await rateLimit(`phone:${context.ip}`, 10);
     if (!rl.ok) return json({ success: false, error: 'Muitas consultas. Aguarde um instante.' }, 429, corsFor(request));
     const body = await readBody(request);
@@ -556,7 +561,7 @@ export function installShandonOsint(ctx) {
     } catch (err) {
       return json({ success: false, error: publicError(err, 'consulta') }, 500, corsFor(request));
     }
-  });
+  }));
 
   /* ------------------------- Crypto Check ------------------------- */
   function isBtcAddress(addr) {
@@ -668,7 +673,7 @@ export function installShandonOsint(ctx) {
     return { address: cleaned, blockchain: 'Unknown', balance: '0', txCount: 0, firstSeen: '', lastSeen: '', riskFlags: [] };
   }
 
-  router.set('POST /api/crypto-check', async (request, context) => {
+  router.set('POST /api/crypto-check', guard('crypto-check', async (request, context) => {
     const rl = await rateLimit(`crypto:${context.ip}`, 8);
     if (!rl.ok) return json({ success: false, error: 'Muitas consultas. Aguarde um instante.' }, 429, corsFor(request));
     const body = await readBody(request);
@@ -681,7 +686,7 @@ export function installShandonOsint(ctx) {
     } catch (err) {
       return json({ success: false, error: publicError(err, 'consulta') }, 500, corsFor(request));
     }
-  });
+  }));
 }
 
 export const SHANDON_OSINT_METADATA = METADATA;

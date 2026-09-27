@@ -13,6 +13,7 @@ import { createApp } from '../src/backend/app.js';
 import { createLocalDb } from '../scripts/local-db.js';
 
 let app;
+let db;
 const originalFetch = globalThis.fetch;
 
 function makeEnv(overrides = {}) {
@@ -26,9 +27,35 @@ function makeEnv(overrides = {}) {
   };
 }
 
-async function call(path, { method = 'GET', body, origin } = {}) {
+/* As ferramentas agora exigem sessao da Central (enforcement no servidor), entao
+   os testes rodam como uma conta PRO. `cookie: null` simula visitante sem conta. */
+let proCookie = null;
+
+async function proSession() {
+  if (proCookie) return proCookie;
+  const reg = new Request('https://central.test/api/auth/register', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Shandon Pro', email: 'pro@shandon.test', password: 'senha-forte-123' }),
+  });
+  const regRes = await app.fetch(reg);
+  const regData = await regRes.json();
+  const cookie = (regRes.headers.get('set-cookie') || '').split(';')[0];
+  if (!cookie) throw new Error('nao foi possivel criar a sessao de teste');
+  // Promove a PRO: as rotas de whatsapp/instagram sao de plano pago.
+  db._exec("UPDATE entitlements SET plan = 'pro' WHERE user_id = '" + regData.user.id + "'");
+  proCookie = cookie;
+  return proCookie;
+}
+
+async function call(path, { method = 'GET', body, origin, cookie } = {}) {
   const headers = { 'content-type': 'application/json' };
   if (origin) headers.origin = origin;
+  if (cookie === null) {
+    // visitante: sem cookie nenhum
+  } else {
+    headers.cookie = cookie || (await proSession());
+  }
   const res = await app.fetch(
     new Request('https://central.test' + path, {
       method,
@@ -50,7 +77,8 @@ before(() => {
   globalThis.fetch = async () => {
     throw new Error('rede bloqueada no teste (stub offline)');
   };
-  app = createApp({ db: createLocalDb(), env: makeEnv() });
+  db = createLocalDb();
+  app = createApp({ db, env: makeEnv() });
 });
 
 after(() => {
@@ -130,7 +158,7 @@ test('POST /api/whatsapp-lookup valida número', async () => {
 
 test('POST /api/whatsapp-lookup com APIFY_API_TOKEN usa o provedor Apify (foto, nome do leak, Telegram)', async () => {
   const appApify = createApp({
-    db: createLocalDb(),
+    db,
     env: makeEnv({ APIFY_API_TOKEN: 'apify_api_test', APIFY_DAILY_LIMIT: '10' }),
   });
   const offline = globalThis.fetch;
@@ -173,7 +201,7 @@ test('POST /api/whatsapp-lookup com APIFY_API_TOKEN usa o provedor Apify (foto, 
     const res = await appApify.fetch(
       new Request('https://central.test/api/whatsapp-lookup', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', cookie: await proSession() },
         body: JSON.stringify({ phone: '554797876098' }),
       })
     );
@@ -199,7 +227,7 @@ test('POST /api/whatsapp-lookup com APIFY_API_TOKEN usa o provedor Apify (foto, 
 
 test('POST /api/whatsapp-lookup Apify: número fora do WhatsApp responde onWhatsApp:false', async () => {
   const appApify = createApp({
-    db: createLocalDb(),
+    db,
     env: makeEnv({ APIFY_API_TOKEN: 'apify_api_test' }),
   });
   const offline = globalThis.fetch;
@@ -214,7 +242,7 @@ test('POST /api/whatsapp-lookup Apify: número fora do WhatsApp responde onWhats
     const res = await appApify.fetch(
       new Request('https://central.test/api/whatsapp-lookup', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', cookie: await proSession() },
         body: JSON.stringify({ phone: '5599999999999' }),
       })
     );
@@ -246,7 +274,7 @@ test('POST /api/instagram valida username e responde configured:false sem chave'
 
 test('POST /api/instagram com APIFY_API_TOKEN entrega perfil completo (modo details)', async () => {
   const appIg = createApp({
-    db: createLocalDb(),
+    db,
     env: makeEnv({ APIFY_API_TOKEN: 'apify_api_test', APIFY_DAILY_LIMIT: '10' }),
   });
   const offline = globalThis.fetch;
@@ -297,7 +325,7 @@ test('POST /api/instagram com APIFY_API_TOKEN entrega perfil completo (modo deta
     const res = await appIg.fetch(
       new Request('https://central.test/api/instagram', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', cookie: await proSession() },
         body: JSON.stringify({ username: 'https://www.instagram.com/torvalds/' }),
       })
     );
