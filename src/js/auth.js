@@ -162,7 +162,12 @@ export function validateName(v) {
 }
 
 /* ---------- Redirect helper for login/register pages ---------- */
+/* Só caminho interno. Um startsWith('/') sozinho não basta: '//evil.com' e
+   '/\evil.com' passam nele e o location.assign jogaria a pessoa num site
+   externo logo depois de entrar — open redirect. Exigimos barra inicial sem
+   barra seguinte e sem barra invertida. */
 export function afterAuthDestination() {
   const next = new URLSearchParams(location.search).get('next');
-  return next && next.startsWith('/') ? next : '/minha-conta';
+  if (next && /^\/(?![/\\])/.test(next)) return next;
+  return '/minha-conta';
 }

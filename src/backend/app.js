@@ -1450,6 +1450,25 @@ export function createApp({ db, env = {} }) {
 
   /* -------- dispatcher -------- */
   return {
+    /**
+     * Portão da PÁGINA /admin.
+     *
+     * O HTML do painel vive no bucket de assets, então ele é baixável por
+     * qualquer um. Ele é um shell — não tem dado nem segredo — mas mesmo
+     * assim o requisito é que só role=admin carregue o painel, e a checagem
+     * precisa ser no servidor. A decisão sai daqui, da MESMA sessão e do MESMO
+     * `requireAuth` das APIs: não existe caminho em que o navegador convença o
+     * Worker a liberar a página.
+     *
+     * Devolve a resposta de bloqueio pronta, ou `null` quando pode seguir para
+     * o asset.
+     */
+    async adminPageGate(request) {
+      await ensureReady();
+      const auth = await resolveAuth(request);
+      return requireAuth({ auth, request }, { admin: true });
+    },
+
     async fetch(request) {
       const ctx = { request, ip: clientIp(request, cfg) };
       const url = new URL(request.url);
