@@ -148,3 +148,28 @@ test('E) a lista de páginas do painel é exata: /administrator não é painel',
   const res = await hit('/administrator', comumCookie);
   assert.equal(res.status, 404, 'apenas /admin, /admin/ e /admin.html são o painel');
 });
+
+/* --------- F) a configuração que faz o portão existir --------- */
+
+test('F) wrangler.toml manda /admin pelo Worker antes do bucket', async () => {
+  /* Este teste existe porque o portão estava testado e mesmo assim não
+     rodava em produção. Motivo: sem `run_worker_first`, o Cloudflare serve o
+     arquivo estático direto do bucket e o Worker não é invocado — o painel
+     saía para qualquer um. O teste com ASSETS falso não podia enxergar isso,
+     porque ele sempre chamava o Worker. Aqui a gente trava a CONFIGURAÇÃO,
+     que é a parte que realmente quebrou. */
+  const { readFile } = await import('node:fs/promises');
+  const toml = await readFile(new URL('../wrangler.toml', import.meta.url), 'utf8');
+  const bloco = toml.split('[assets]')[1] || '';
+  const linha = bloco.split('\n').find((l) => l.trim().startsWith('run_worker_first'));
+  assert.ok(linha, 'wrangler.toml não tem run_worker_first: o portão de /admin não roda');
+
+  const valor = linha.slice(linha.indexOf('=') + 1).trim();
+  const cobertura = valor.startsWith('[')
+    ? [...valor.matchAll(/"([^"]+)"/g)].map((m) => m[1])
+    : [valor];
+  for (const pagina of ['/admin', '/admin.html', '/admin/']) {
+    const pegada = cobertura.some((p) => p === pagina || (p.endsWith('/*') && pagina.startsWith(p.slice(0, -1))));
+    assert.ok(pegada, `run_worker_first não cobre ${pagina} (tem ${cobertura.join(', ')})`);
+  }
+});

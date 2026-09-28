@@ -8,6 +8,12 @@ compatibility_flags = ["nodejs_compat"]
 [assets]
 directory = "./dist"
 binding = "ASSETS"
+# Sem isto, o Cloudflare responde direto do bucket qualquer arquivo que exista
+# e o Worker NEM É INVOCADO — o portão de /admin em src/worker.js jamais
+# rodaria, e o painel seria servido para qualquer visitante. Só estas rotas
+# passam pelo Worker primeiro; o resto dos assets (css, js, imagens) continua
+# na via rápida, sem custo de invocação.
+run_worker_first = ["/admin", "/admin.html", "/admin/*"]
 
 [vars]
 # Fixados aqui para que o CI (`wrangler deploy`) aplique a mesma configuração
