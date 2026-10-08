@@ -3,247 +3,117 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Central Amorim — Inteligência Digital</title>
-  <meta name="description" content="Central Amorim — Portal central com projetos, ferramentas e soluções digitais de Sr. Amorim." />
-  <meta property="og:title" content="Central Amorim — Inteligência Digital" />
-  <meta property="og:description" content="Projetos, ferramentas e soluções digitais de Sr. Amorim em um único espaço." />
+  <title>Central Amorim — Senhor Amorim</title>
+  <meta name="description" content="Central Amorim — entrada oficial para os projetos e plataformas de Senhor Amorim." />
+  <meta property="og:title" content="Central Amorim — Senhor Amorim" />
+  <meta property="og:description" content="Tecnologia, inteligência, conteúdo e projetos em um só lugar." />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="pt_BR" />
+  <meta name="theme-color" content="#090909" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="manifest" href="/manifest.webmanifest" />
-  <meta name="theme-color" content="#2b6bff" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="Central Amorim" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/src/css/style.css" />
 </head>
 <body>
-
-  <!-- HEADER -->
   <header class="header" role="banner">
     <div class="container header-inner">
-      <a href="/" class="logo" aria-label="Central Amorim — Página inicial">
-        <span class="logo-mark" aria-hidden="true">SA</span>
-        <span>SR. AMORIM</span>
+      <a href="#inicio" class="brand-mini" aria-label="Senhor Amorim — início">
+        <span class="brand-mini-mark" aria-hidden="true"><span></span></span>
+        <span>Senhor <b>Amorim</b></span>
       </a>
-
-      <div class="header-actions">
-        <nav class="nav-desktop" role="navigation" aria-label="Menu principal">
-          <a href="#inicio">Início</a>
-          <a href="#projetos">Projetos</a>
-          <a href="/ferramentas">Ferramentas</a>
-          <a href="/planos">Planos</a>
-          <a href="#sobre">Sobre</a>
-          <a href="#contato">Contato</a>
-        </nav>
-        <div class="auth-slot" data-auth></div>
-        <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-nav">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
+      <nav class="nav-desktop" aria-label="Navegação principal">
+        <a href="#inicio">Início</a>
+        <a href="#projetos">Projetos</a>
+        <a href="#sobre">Sobre</a>
+        <a href="#contato">Contato</a>
+      </nav>
+      <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-nav"><span></span><span></span><span></span></button>
     </div>
-
-    <nav class="nav-mobile" id="mobile-nav" role="navigation" aria-label="Menu mobile">
-      <a href="#inicio">Início</a>
-      <a href="#projetos">Projetos</a>
-      <a href="/ferramentas">Ferramentas</a>
-      <a href="/planos">Planos</a>
-      <a href="#sobre">Sobre</a>
-      <a href="#contato">Contato</a>
-      <span data-auth-mobile></span>
+    <nav class="nav-mobile" id="mobile-nav" aria-label="Navegação mobile">
+      <a href="#inicio">Início</a><a href="#projetos">Projetos</a><a href="#sobre">Sobre</a><a href="#contato">Contato</a>
     </nav>
   </header>
 
-  <main>
-
-    <!-- HERO -->
-    <section class="hero" id="inicio">
-      <div class="hero-content">
-        <div class="hero-badge fade-in">
-          <span class="hero-badge-dot" aria-hidden="true"></span>
-          Plataforma Oficial
+  <main id="inicio">
+    <section class="hero">
+      <div class="hero-grid container">
+        <div class="hero-copy">
+          <div class="hero-logo" aria-label="Senhor Amorim">
+            <span class="hero-logo-mark" aria-hidden="true"><span></span></span>
+            <div class="hero-logo-wordmark"><span>SENHOR</span><strong>AMORIM</strong></div>
+          </div>
+          <div class="hero-rule"></div>
+          <p class="hero-kicker">TECNOLOGIA <i>•</i> INTELIGÊNCIA <i>•</i> CONTEÚDO <i>•</i> RESULTADOS</p>
+          <p class="hero-subtitle">A presença digital de Senhor Amorim, reunida em uma única entrada.</p>
+          <div class="social-rail" id="social-grid" aria-label="Canais oficiais"></div>
         </div>
-        <h1 class="fade-in fade-in-d1">CENTRAL<br/>AMORIM</h1>
-        <p class="hero-tagline fade-in fade-in-d2">Inteligência Digital</p>
-        <p class="hero-subtitle fade-in fade-in-d3">
-          O portal central dos projetos e soluções digitais criados por Sr. Amorim — ferramentas para redes sociais (Instagram, Facebook e mais), investigação digital e inteligência de código aberto.
-        </p>
-        <div class="hero-buttons fade-in fade-in-d3">
-          <a href="#projetos" class="btn btn-primary">Explorar Projetos</a>
-          <a href="/entrar" class="btn btn-secondary">Entrar / Criar conta</a>
+        <div class="hero-orbit" aria-hidden="true">
+          <div class="orbit-ring orbit-ring-a"></div><div class="orbit-ring orbit-ring-b"></div>
+          <div class="orbit-core"><span class="orbit-a">A</span><span class="orbit-eye"></span></div>
+          <span class="orbit-dot orbit-dot-1"></span><span class="orbit-dot orbit-dot-2"></span><span class="orbit-dot orbit-dot-3"></span>
         </div>
       </div>
     </section>
 
-    <!-- PROJETOS -->
-    <section class="section" id="projetos">
+    <section class="projects section" id="projetos">
       <div class="container">
-        <span class="section-label reveal">Portfólio</span>
-        <h2 class="section-title reveal">Meus Projetos</h2>
-        <p class="section-subtitle reveal">Projetos desenvolvidos e mantidos por Sr. Amorim.</p>
-
-        <div class="tools-see-all reveal">
-          <a href="/ferramentas" class="btn btn-secondary">Ver todas as ferramentas →</a>
+        <div class="section-heading">
+          <span class="section-label">Ecossistema</span>
+          <h1>Projetos</h1>
+          <p>Produtos com identidade própria, reunidos pela Central Amorim.</p>
         </div>
-
         <div class="projects-grid" id="projects-grid"></div>
+        <a class="coming-soon" href="#contato">
+          <span class="coming-icon" aria-hidden="true">↗</span>
+          <span><b>Em breve</b><small>Novos projetos e ferramentas entrando no ecossistema.</small></span>
+          <span class="coming-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
 
-        <div class="card new-projects-card reveal">
-          <p class="new-projects-text">
-            Em breve: TikTok, X (Twitter), YouTube e mais redes sociais.<br />
-            A Central está sempre evoluindo.
-          </p>
+    <section class="about section" id="sobre">
+      <div class="container about-panel">
+        <div>
+          <span class="section-label">Central Amorim</span>
+          <h2>Uma entrada.<br><em>Um ecossistema.</em></h2>
         </div>
+        <p>Projetos independentes de tecnologia, inteligência e análise, cada um com sua própria identidade e propósito.</p>
       </div>
     </section>
 
-    <!-- SOLUÇÕES -->
-    <section class="section" id="solucoes">
-      <div class="container">
-        <span class="section-label reveal">Serviços</span>
-        <h2 class="section-title reveal">Soluções</h2>
-        <p class="section-subtitle reveal">Ferramentas e recursos criados para necessidades reais.</p>
-
-        <div class="card solutions-card reveal">
-          <p class="solutions-text">
-            Esta área será expandida conforme novas soluções forem lançadas.
-            Cada solução é pensada para atender necessidades reais com simplicidade e eficiência.
-          </p>
+    <section class="contact section" id="contato">
+      <div class="container contact-panel">
+        <div>
+          <span class="section-label">Contato</span>
+          <h2>Fale com<br><em>Senhor Amorim.</em></h2>
         </div>
+        <a class="contact-cta" href="https://wa.me/554797876098" target="_blank" rel="noopener noreferrer">
+          <span class="contact-icon" aria-hidden="true">⌁</span><span>WhatsApp</span><span>→</span>
+        </a>
       </div>
     </section>
-
-    <!-- COMO FUNCIONA -->
-    <section class="section" id="como-funciona">
-      <div class="container">
-        <span class="section-label reveal">Processo</span>
-        <h2 class="section-title reveal">Como funciona</h2>
-        <p class="section-subtitle reveal">Da conta gratuita ao acesso PRO em três passos simples.</p>
-
-        <div class="steps-grid">
-          <div class="step-card reveal">
-            <span class="step-num" aria-hidden="true">1</span>
-            <h3>Crie sua conta gratuita</h3>
-            <p>Cadastro em menos de um minuto. Nada de cartão, nada escondido.</p>
-          </div>
-          <div class="step-card reveal">
-            <span class="step-num" aria-hidden="true">2</span>
-            <h3>Use os projetos no navegador</h3>
-            <p>AMORIM FOLLOW e IG RADAR rodam direto no navegador, sem instalar nada.</p>
-          </div>
-          <div class="step-card reveal">
-            <span class="step-num" aria-hidden="true">3</span>
-            <h3>Vire PRO quando quiser</h3>
-            <p>Pagamento único de R$ 9,99 via Pix, com acesso vitalício e ativação rápida.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CONECTE-SE -->
-    <section class="section" id="contato">
-      <div class="container">
-        <span class="section-label reveal">Redes</span>
-        <h2 class="section-title reveal">Conecte-se</h2>
-        <p class="section-subtitle reveal">Acompanhe as atualizações nos canais oficiais.</p>
-
-        <div class="connect-grid" id="social-grid"></div>
-      </div>
-    </section>
-
-    <!-- SOBRE -->
-    <section class="section" id="sobre">
-      <div class="container">
-        <span class="section-label reveal">Identidade</span>
-        <h2 class="section-title reveal">Sobre a Central</h2>
-
-        <div class="about-content reveal">
-          <p class="about-text">
-            A Central Amorim é o portal da marca Sr. Amorim — um espaço único que reúne projetos digitais, pesquisas, ferramentas e soluções desenvolvidas de forma independente.
-          </p>
-        </div>
-      </div>
-    </section>
-
-  <!-- FAQ -->
-    <section class="section" id="faq">
-      <div class="container">
-        <span class="section-label reveal">Dúvidas</span>
-        <h2 class="section-title reveal">Perguntas frequentes</h2>
-        <p class="section-subtitle reveal">O que a galera mais pergunta antes de começar.</p>
-
-        <div class="faq-list reveal">
-          <details class="faq-item">
-            <summary>É seguro usar essas ferramentas?</summary>
-            <p>Sim. Tudo é feito no seu navegador com os seus próprios arquivos — nada é enviado nem armazenado em servidor. Os dados analisados são públicos.</p>
-          </details>
-          <details class="faq-item">
-            <summary>Preciso instalar algum programa?</summary>
-            <p>Não. A Central roda 100% no navegador, do celular ou do computador. Basta criar uma conta gratuita.</p>
-          </details>
-          <details class="faq-item">
-            <summary>Como funciona o plano PRO?</summary>
-            <p>Pagamento único de R$ 9,99 via Pix (QR Code ou copia e cola). Após o pagamento, o acesso PRO é liberado e fica ativo para sempre na sua conta.</p>
-          </details>
-          <details class="faq-item">
-            <summary>Quais ferramentas vêm em seguida?</summary>
-            <p>A Central está sempre evoluindo. Projetos novos são anunciados por aqui e nos canais oficiais do Sr. Amorim.</p>
-          </details>
-        </div>
-      </div>
-    </section>
-
   </main>
 
-  <!-- FOOTER -->
   <footer class="footer" role="contentinfo">
-    <div class="container">
-      <div class="footer-grid">
-        <div>
-          <div class="footer-brand">CENTRAL AMORIM</div>
-          <p class="footer-tagline">Portal da marca Sr. Amorim.</p>
-        </div>
-
-        <div class="footer-links">
-          <span class="footer-col-title">Conta</span>
-          <a href="/entrar">Entrar</a>
-          <a href="/criar-conta">Criar conta</a>
-          <a href="/minha-conta">Minha conta</a>
-          <a href="/planos">Planos</a>
-        </div>
-
-        <div class="footer-links">
-          <span class="footer-col-title">Navegação</span>
-          <a href="#projetos">Projetos</a>
-          <a href="/ferramentas">Ferramentas</a>
-          <a href="#solucoes">Soluções</a>
-          <a href="#sobre">Sobre</a>
-          <a href="#contato">Contato</a>
-        </div>
-
-        <div class="footer-links">
-          <span class="footer-col-title">Projetos</span>
-          <a href="https://osint.senhoramorim.com.br" target="_blank" rel="noopener noreferrer">Amorim OSINT</a>
-          <a href="https://elite.senhoramorim.com.br" target="_blank" rel="noopener noreferrer">Shandon Elite</a>
-        </div>
-
-        <div class="footer-links">
-          <span class="footer-col-title">Legal</span>
-          <a href="/creditos">Créditos</a>
-          <a href="/legal">Legal</a>
-        </div>
+    <div class="container footer-inner">
+      <div class="footer-signature">
+        <div class="signature-mark" aria-hidden="true"><span></span></div>
+        <div><strong>Daniel A. Amorim</strong><small>Todos os direitos reservados.</small><small>© 2026 Senhor Amorim.</small></div>
       </div>
-
-      <div class="footer-bottom">
-        <p>&copy; 2026 Sr. Amorim — Daniel Amorim</p>
-      </div>
+      <div class="footer-meta">CENTRAL AMORIM <span>•</span> TECNOLOGIA <span>•</span> INTELIGÊNCIA <span>•</span> CONTEÚDO</div>
     </div>
   </footer>
 
+  <nav class="bottom-nav" aria-label="Navegação rápida">
+    <a href="#inicio"><span>⌂</span><small>Início</small></a>
+    <a href="#projetos"><span>◈</span><small>Projetos</small></a>
+    <a href="#sobre"><span>◎</span><small>Sobre</small></a>
+    <a href="#contato"><span>✉</span><small>Contato</small></a>
+  </nav>
   <script type="module" src="/src/js/main.js"></script>
 </body>
 </html>

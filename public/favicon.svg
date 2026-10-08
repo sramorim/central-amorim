@@ -1,10 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1"/>
-      <stop offset="100%" stop-color="#8b5cf6"/>
-    </linearGradient>
-  </defs>
-  <rect width="32" height="32" rx="6" fill="url(#g)"/>
-  <text x="16" y="22" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="800" fill="#fff">SA</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs><linearGradient id="g" x1="15" y1="110" x2="105" y2="10"><stop stop-color="#ef1d2d"/><stop offset=".45" stop-color="#f7f7f8"/><stop offset="1" stop-color="#777a80"/></linearGradient></defs>
+  <rect width="128" height="128" rx="30" fill="#070707"/>
+  <path d="M64 13 112 105H16L64 13Z" fill="url(#g)"/>
+  <path d="M64 35 91 91H37L64 35Z" fill="#070707"/>
+  <path d="M47 69c5-8 11-12 17-12s12 4 17 12c-6 7-28 7-34 0Z" fill="#070707" stroke="#ef1d2d" stroke-width="2"/>
+  <circle cx="64" cy="69" r="4" fill="#ef1d2d"/>
 </svg>
