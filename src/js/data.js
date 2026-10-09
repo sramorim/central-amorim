@@ -2,6 +2,11 @@ export const categories = [
   { id: 'projetos', label: 'Projetos', hint: 'Ecossistema Senhor Amorim' },
 ];
 
+export const platformLabels = {
+  instagram: 'Instagram',
+  multiplas: 'Múltiplas plataformas',
+};
+
 const iconPresence = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="presence-g" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#ff7a18"/><stop offset=".45" stop-color="#e94057"/><stop offset="1" stop-color="#8a2be2"/></linearGradient></defs><rect x="5" y="5" width="54" height="54" rx="15" fill="url(#presence-g)"/><rect x="17" y="17" width="25" height="25" rx="8" fill="none" stroke="#fff" stroke-width="3"/><circle cx="29.5" cy="29.5" r="6" fill="none" stroke="#fff" stroke-width="3"/><circle cx="38.5" cy="21.5" r="2.2" fill="#fff"/><circle cx="44" cy="44" r="8" fill="#101114" stroke="#fff" stroke-width="2.4"/><path d="m50 50 6 6" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></svg>`;
 const iconArgos = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="argos-g" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#ff1e2d"/><stop offset="1" stop-color="#ff5b65"/></linearGradient></defs><path d="M32 5 55 51H9L32 5Z" fill="#08090c" stroke="url(#argos-g)" stroke-width="4"/><path d="M20 43 32 17l12 26" fill="none" stroke="url(#argos-g)" stroke-width="3"/><ellipse cx="32" cy="33" rx="10" ry="6" fill="#08090c" stroke="#fff" stroke-width="2"/><circle cx="32" cy="33" r="2.5" fill="#ff2635"/></svg>`;
 const iconOsint = `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="28" cy="28" r="21" fill="#071018" stroke="#69d5ff" stroke-width="3"/><path d="M8 28h40M28 7c6 6 9 13 9 21s-3 15-9 21M28 7c-6 6-9 13-9 21s3 15 9 21" fill="none" stroke="#69d5ff" stroke-width="2"/><path d="M43 43 57 57" stroke="#fff" stroke-width="5" stroke-linecap="round"/><circle cx="43" cy="43" r="8" fill="#071018" stroke="#fff" stroke-width="3"/></svg>`;
