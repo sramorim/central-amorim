@@ -199,7 +199,11 @@
         $id('pay-code').textContent = code;
         $id('pay-code').classList.remove('hidden');
         $id('pay-copy').value = d.pix.copyPaste;
-        $id('pay-qr').src = '/pix-qr.png';
+        // QR sempre gerado do copia-e-cola real (nunca da imagem estática,
+        // que pode ficar desatualizada se a chave/valor mudar no Dashboard).
+        var qr = $id('pay-qr');
+        qr.onerror = function () { qr.onerror = null; qr.src = '/pix-qr.png'; };
+        qr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=8&qzone=2&data=' + encodeURIComponent(d.pix.copyPaste);
         $id('pay-qr').alt = 'QR Code Pix — ' + code;
         var wa = d.whatsapp && d.whatsapp.number;
         if (wa) {

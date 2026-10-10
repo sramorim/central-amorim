@@ -260,6 +260,15 @@ CREATE INDEX IF NOT EXISTS idx_orders_email ON orders(email);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+CREATE TABLE IF NOT EXISTS link_clicks (
+  id TEXT PRIMARY KEY,
+  target TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'project',
+  day TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_clicks_day ON link_clicks(day);
+CREATE INDEX IF NOT EXISTS idx_clicks_target ON link_clicks(target);
 ${TOOLS_TABLE_SQL}
 ${AUDIT_TABLE_SQL}
 `;
@@ -1089,6 +1098,27 @@ export function createApp({ db, env = {} }) {
       whatsapp: cfg.WA_NUMBER ? { number: cfg.WA_NUMBER } : null,
       note: 'Após pagar, envie o comprovante no WhatsApp informando o código do pedido para ativar o PRO.',
     }, 201);
+  });
+
+  /* -------- métricas de cliques da bio (invisível no visual) -------- */
+  router.set('POST /api/metrics/click', async (request, ctx) => {
+    const rl = await rateLimit(`click:${ctx.ip}`, 60);
+    if (!rl.ok) return json({ ok: false }, 429);
+    const body = await readBody(request);
+    const target = String((body && body.target) || '').slice(0, 120);
+    const kind = String((body && body.kind) || 'project').slice(0, 20);
+    if (!target) return json({ ok: false }, 400);
+    await ensureReady();
+    const day = new Date().toISOString().slice(0, 10);
+    await db.prepare('INSERT INTO link_clicks (id, target, kind, day, created_at) VALUES (?, ?, ?, ?, ?)').bind(crypto.randomUUID(), target, kind, day, Date.now()).run();
+    return json({ ok: true });
+  });
+
+  router.set('GET /api/admin/metrics', async (request, ctx) => {
+    const check = await adminCheck(ctx);
+    if (check.error) return check.error;
+    const rows = await db.prepare("SELECT target, kind, COUNT(*) AS clicks, SUM(CASE WHEN day = date('now') THEN 1 ELSE 0 END) AS today FROM link_clicks GROUP BY target, kind ORDER BY clicks DESC LIMIT 50").all();
+    return json({ ok: true, metrics: toRows(rows) });
   });
 
   /* -------- admin: orders -------- */

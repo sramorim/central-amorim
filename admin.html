@@ -96,6 +96,18 @@
     </div>
     <div class="empty" id="orders-empty" hidden>Sem pedidos ainda.</div>
 
+    <h2>Cliques da bio</h2>
+    <p class="hint">Quantos cliques cada link da página inicial recebe. Total e hoje.</p>
+    <div class="scroll">
+      <table id="metrics-table" hidden>
+        <thead>
+          <tr><th>Link</th><th>Tipo</th><th>Cliques</th><th>Hoje</th></tr>
+        </thead>
+        <tbody id="metrics-body"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="metrics-empty" hidden>Sem cliques ainda.</div>
+
     <p class="footer"><b>© 2026 Sr. Amorim — Daniel Amorim</b> · Todos os direitos reservados · uso interno</p>
   </div>
 
@@ -371,6 +383,22 @@
           });
       }
 
+      /* ---- cliques da bio ---- */
+      function loadMetrics() {
+        api('/api/admin/metrics').then(function (res) {
+          if (requireAdmin(res)) return;
+          var rows = (res.data && res.data.metrics) || [];
+          if (!rows.length) { $('metrics-empty').hidden = false; $('metrics-table').hidden = true; return; }
+          $('metrics-empty').hidden = true; $('metrics-table').hidden = false;
+          var body = $('metrics-body'); body.innerHTML = '';
+          rows.forEach(function (m) {
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + escapeHtml(m.target) + '</td><td>' + escapeHtml(m.kind) + '</td><td><b>' + escapeHtml(m.clicks) + '</b></td><td>' + escapeHtml(m.today) + '</td>';
+            body.appendChild(tr);
+          });
+        });
+      }
+
       function boot() {
         api('/api/auth/me').then(function (res) {
           if (!res.data || !res.data.authenticated) {
@@ -387,6 +415,7 @@
           loadUsers();
           loadTools();
           loadOrders();
+          loadMetrics();
         });
       }
 

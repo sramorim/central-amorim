@@ -2046,7 +2046,7 @@ body.bio{background:#060606;min-height:100svh;display:flex;justify-content:cente
 .bio-wrap{width:100%;max-width:560px;padding:2.2rem 1.4rem 1rem}
 .bio-hero{text-align:center}
 .bio-logo{display:flex;justify-content:center}
-.bio-logo-img{width:min(340px,82%);height:auto;display:block}
+.bio-logo-img{width:min(323px,82%);height:auto;display:block}
 .bio-tagline{margin-top:1rem;font-size:.68rem;letter-spacing:.32em;color:#b9b9bd;font-weight:500}
 .bio-social{display:flex;justify-content:center;gap:.85rem;margin-top:1.4rem}
 .bio-soc{width:56px;height:56px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.22);border-radius:15px;background:#0a0a0a;color:#f2f2f2;transition:.2s}

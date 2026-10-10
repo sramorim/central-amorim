@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await Promise.all([renderAuthSlot(), Promise.resolve()]);
   renderProjects();
   renderSocialLinks();
+  initClickMetrics();
   initMobileNav();
   initScrollReveal();
   initHeroCounters();
@@ -71,6 +72,21 @@ function renderSocialLinks() {
     </a>`
     )
     .join('');
+}
+
+/* ---------- Métricas de cliques (invisível: não muda o visual) ---------- */
+function initClickMetrics() {
+  document.addEventListener('click', (ev) => {
+    const card = ev.target.closest('.bio-card, .bio-soc, #footer-social a');
+    if (!card) return;
+    const target = (card.getAttribute('href') || card.getAttribute('aria-label') || 'desconhecido').slice(0, 120);
+    const kind = card.classList.contains('bio-soc') || card.closest('#footer-social') ? 'social' : 'project';
+    const body = JSON.stringify({ target, kind });
+    try {
+      if (navigator.sendBeacon) navigator.sendBeacon('/api/metrics/click', new Blob([body], { type: 'application/json' }));
+      else fetch('/api/metrics/click', { method: 'POST', headers: { 'content-type': 'application/json' }, body, keepalive: true });
+    } catch { /* métrica nunca pode quebrar o clique */ }
+  });
 }
 
 /* ---------- Header Scroll ---------- */
