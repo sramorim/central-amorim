@@ -20,15 +20,34 @@ function renderProjects() {
   const grid = document.getElementById('projects-grid');
   if (!grid) return;
   grid.innerHTML = projects.map((project) => `
-    <article class="project-card${project.featured ? ' project-card--featured' : ''}">
-      <div class="project-icon" aria-hidden="true">${project.icon}</div>
-      <div class="project-info">
-        <span class="project-category">${project.category}</span>
-        <h2 class="project-name">${project.name}</h2>
-        <p class="project-summary">${project.summary}</p>
-      </div>
-      <a href="${project.url}" class="project-open" target="_blank" rel="noopener noreferrer" aria-label="Abrir ${project.name}">→</a>
-    </article>`).join('');
+    <a href="${project.url}" class="bio-card" target="_blank" rel="noopener noreferrer" aria-label="Abrir ${project.name}">
+      <span class="bio-icon" aria-hidden="true">${project.icon}</span>
+      <span class="bio-info">
+        <b>${project.name}</b>
+        <small>${project.summary}</small>
+      </span>
+      <span class="bio-arrow" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+    </a>`).join('');
+  renderFooterSocial();
+}
+
+function renderFooterSocial() {
+  const foot = document.getElementById('footer-social');
+  if (!foot) return;
+  const svgIcons = {
+    instagram: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.3" fill="currentColor" stroke="none"/></svg>`,
+    facebook: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-8h2.7l.4-3h-3.1V8.1c0-.87.24-1.46 1.5-1.46h1.7V4c-.3-.04-1.3-.12-2.5-.12-2.48 0-4.18 1.51-4.18 4.3V10H7.3v3h2.72v8h3.48Z"/></svg>`,
+    x: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-6.77 7.74L23.2 22h-6.24l-4.89-6.37L6.5 22H3.39l7.24-8.28L2.1 2h6.4l4.42 5.84L18.9 2Zm-1.1 17.7h1.72L7.55 4.18H5.7L17.8 19.7Z"/></svg>`,
+    telegram: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="m21.5 4.2-3.05 14.4c-.23 1.02-.84 1.27-1.7.79l-4.7-3.46-2.27 2.18c-.25.25-.46.46-.94.46l.34-4.79 8.72-7.88c.38-.34-.08-.53-.59-.19L6.54 12.5 1.9 11.05c-1.01-.32-1.03-1.01.21-1.5L20.3 2.47c.85-.31 1.59.19 1.2 1.73Z"/></svg>`,
+    whatsapp: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`,
+  };
+  // ordem oficial do rodapé = mesma do topo
+  const order = ['instagram','facebook','x','telegram','whatsapp'];
+  foot.innerHTML = order.map(k => {
+    const s = socialLinks.find(l => l.icon === k);
+    if (!s) return '';
+    return `<a href="${s.url}" target="_blank" rel="noopener" aria-label="${s.label}">${svgIcons[k]}</a>`;
+  }).join('');
 }
 
 /* ---------- Render Social Links ---------- */
@@ -47,14 +66,8 @@ function renderSocialLinks() {
   grid.innerHTML = socialLinks
     .map(
       (s) => `
-    <a href="${s.url}" class="connect-btn connect-btn--${s.color}" target="_blank" rel="noopener noreferrer" aria-label="${s.label}">
-      <span class="connect-icon connect-icon--${s.color}" aria-hidden="true">
+    <a href="${s.url}" class="bio-soc" target="_blank" rel="noopener noreferrer" aria-label="${s.label}">
         ${svgIcons[s.icon]}
-      </span>
-      <span class="connect-text">
-        <span class="connect-name">${s.name}</span>
-        <span class="connect-label">${s.label}</span>
-      </span>
     </a>`
     )
     .join('');

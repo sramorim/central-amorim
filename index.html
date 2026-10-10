@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Central Amorim — Senhor Amorim</title>
-  <meta name="description" content="Central Amorim — entrada oficial para os projetos e plataformas de Senhor Amorim." />
-  <meta property="og:title" content="Central Amorim — Senhor Amorim" />
-  <meta property="og:description" content="Tecnologia, inteligência, conteúdo e projetos em um só lugar." />
+  <title>Senhor Amorim — Central Amorim</title>
+  <meta name="description" content="Central Amorim — meus projetos, ferramentas e conteúdos. Senhor Amorim." />
+  <meta property="og:title" content="Senhor Amorim — Central Amorim" />
+  <meta property="og:description" content="Meus projetos, ferramentas e conteúdos em um só lugar." />
   <meta property="og:type" content="website" />
+  <meta property="og:image" content="/logo-amorim.png" />
   <meta property="og:locale" content="pt_BR" />
-  <meta name="theme-color" content="#090909" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="theme-color" content="#050505" />
+  <link rel="icon" type="image/png" href="/logo-amorim.png" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,102 +19,29 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/src/css/style.css" />
 </head>
-<body>
-  <header class="header" role="banner">
-    <div class="container header-inner">
-      <a href="#inicio" class="brand-mini" aria-label="Senhor Amorim — início">
-        <span class="brand-mini-mark" aria-hidden="true"><span></span></span>
-        <span>Senhor <b>Amorim</b></span>
-      </a>
-      <nav class="nav-desktop" aria-label="Navegação principal">
-        <a href="#inicio">Início</a>
-        <a href="#projetos">Projetos</a>
-        <a href="#sobre">Sobre</a>
-        <a href="#contato">Contato</a>
-      </nav>
-      <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-nav"><span></span><span></span><span></span></button>
-    </div>
-    <nav class="nav-mobile" id="mobile-nav" aria-label="Navegação mobile">
-      <a href="#inicio">Início</a><a href="#projetos">Projetos</a><a href="#sobre">Sobre</a><a href="#contato">Contato</a>
-    </nav>
-  </header>
-
-  <main id="inicio">
-    <section class="hero">
-      <div class="hero-grid container">
-        <div class="hero-copy">
-          <div class="hero-logo" aria-label="Senhor Amorim">
-            <span class="hero-logo-mark" aria-hidden="true"><span></span></span>
-            <div class="hero-logo-wordmark"><span>SENHOR</span><strong>AMORIM</strong></div>
-          </div>
-          <div class="hero-rule"></div>
-          <p class="hero-kicker">TECNOLOGIA <i>•</i> INTELIGÊNCIA <i>•</i> CONTEÚDO <i>•</i> RESULTADOS</p>
-          <p class="hero-subtitle">A presença digital de Senhor Amorim, reunida em uma única entrada.</p>
-          <div class="social-rail" id="social-grid" aria-label="Canais oficiais"></div>
-        </div>
-        <div class="hero-orbit" aria-hidden="true">
-          <div class="orbit-ring orbit-ring-a"></div><div class="orbit-ring orbit-ring-b"></div>
-          <div class="orbit-core"><span class="orbit-a">A</span><span class="orbit-eye"></span></div>
-          <span class="orbit-dot orbit-dot-1"></span><span class="orbit-dot orbit-dot-2"></span><span class="orbit-dot orbit-dot-3"></span>
-        </div>
+<body class="bio">
+  <main class="bio-wrap" id="inicio">
+    <!-- LOGO OFICIAL -->
+    <header class="bio-hero">
+      <div class="bio-logo" aria-label="Senhor Amorim — Central Amorim">
+        <img src="/logo-amorim.png" alt="Senhor Amorim — Central Amorim" class="bio-logo-img" />
       </div>
+      <p class="bio-tagline">MEUS PROJETOS, FERRAMENTAS E CONTEÚDOS</p>
+      <div class="bio-social" id="social-grid" aria-label="Canais oficiais"></div>
+    </header>
+
+    <!-- PROJETOS (ordem oficial) -->
+    <section class="bio-projects" id="projetos" aria-label="Projetos">
+      <div class="bio-list" id="projects-grid"></div>
     </section>
 
-    <section class="projects section" id="projetos">
-      <div class="container">
-        <div class="section-heading">
-          <span class="section-label">Ecossistema</span>
-          <h1>Projetos</h1>
-          <p>Produtos com identidade própria, reunidos pela Central Amorim.</p>
-        </div>
-        <div class="projects-grid" id="projects-grid"></div>
-        <a class="coming-soon" href="#contato">
-          <span class="coming-icon" aria-hidden="true">↗</span>
-          <span><b>Em breve</b><small>Novos projetos e ferramentas entrando no ecossistema.</small></span>
-          <span class="coming-arrow" aria-hidden="true">→</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="about section" id="sobre">
-      <div class="container about-panel">
-        <div>
-          <span class="section-label">Central Amorim</span>
-          <h2>Uma entrada.<br><em>Um ecossistema.</em></h2>
-        </div>
-        <p>Projetos independentes de tecnologia, inteligência e análise, cada um com sua própria identidade e propósito.</p>
-      </div>
-    </section>
-
-    <section class="contact section" id="contato">
-      <div class="container contact-panel">
-        <div>
-          <span class="section-label">Contato</span>
-          <h2>Fale com<br><em>Senhor Amorim.</em></h2>
-        </div>
-        <a class="contact-cta" href="https://wa.me/554797876098" target="_blank" rel="noopener noreferrer">
-          <span class="contact-icon" aria-hidden="true">⌁</span><span>WhatsApp</span><span>→</span>
-        </a>
-      </div>
-    </section>
+    <!-- RODAPÉ OFICIAL -->
+    <footer class="bio-footer" role="contentinfo">
+      <div class="bio-sign">Daniel Amorim</div>
+      <div class="bio-rights">Todos os direitos reservados.<br>© 2026 Senhor Amorim.</div>
+      <div class="bio-mini" id="footer-social" aria-label="Redes sociais"></div>
+    </footer>
   </main>
-
-  <footer class="footer" role="contentinfo">
-    <div class="container footer-inner">
-      <div class="footer-signature">
-        <div class="signature-mark" aria-hidden="true"><span></span></div>
-        <div><strong>Daniel A. Amorim</strong><small>Todos os direitos reservados.</small><small>© 2026 Senhor Amorim.</small></div>
-      </div>
-      <div class="footer-meta">CENTRAL AMORIM <span>•</span> TECNOLOGIA <span>•</span> INTELIGÊNCIA <span>•</span> CONTEÚDO</div>
-    </div>
-  </footer>
-
-  <nav class="bottom-nav" aria-label="Navegação rápida">
-    <a href="#inicio"><span>⌂</span><small>Início</small></a>
-    <a href="#projetos"><span>◈</span><small>Projetos</small></a>
-    <a href="#sobre"><span>◎</span><small>Sobre</small></a>
-    <a href="#contato"><span>✉</span><small>Contato</small></a>
-  </nav>
   <script type="module" src="/src/js/main.js"></script>
 </body>
 </html>

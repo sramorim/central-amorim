@@ -18,19 +18,18 @@ function read(rel) {
   return readFileSync(resolve(root, rel), 'utf8');
 }
 
-test('socialLinks contém apenas Instagram e WhatsApp (sem GitHub)', async () => {
-  assert.equal(socialLinks.length, 2);
+test('socialLinks contém os 5 canais oficiais da referência (sem GitHub)', async () => {
+  assert.equal(socialLinks.length, 5);
   const names = socialLinks.map((s) => s.name.toLowerCase()).sort();
-  assert.deepEqual(names, ['instagram', 'whatsapp']);
+  assert.deepEqual(names, ['facebook', 'instagram', 'telegram', 'whatsapp', 'x']);
   assert.equal(socialLinks.some((s) => /github/.test(s.name.toLowerCase())), false);
 });
 
-test('cada canal possui url, label, icon e updatedAt', () => {
+test('cada canal possui url, label e icon https válidos', () => {
   for (const link of socialLinks) {
     assert.ok(link.url, `${link.name} deve ter url`);
     assert.ok(link.label, `${link.name} deve ter label`);
     assert.ok(link.icon, `${link.name} deve ter icon`);
-    assert.ok(link.updatedAt, `${link.name} deve ter updatedAt`);
     assert.match(link.url, /^https:\/\//, `${link.name} deve usar https`);
   }
 });
@@ -72,9 +71,12 @@ test('ferramentas.html existe com busca, filtro e grid', () => {
   assert.match(html, /ferramentas\.js/, 'deve carregar o script do catálogo');
 });
 
-test('home linka a página todas as ferramentas', () => {
+test('home é o linktree oficial: logo, 4 projetos e sociais', () => {
   const html = read('index.html');
-  assert.match(html, /\/ferramentas/, 'home deve ter link para /ferramentas');
+  assert.match(html, /logo-amorim\.png/, 'home deve exibir a logo oficial');
+  assert.match(html, /projects-grid/, 'home deve ter o grid de projetos');
+  assert.match(html, /social-grid/, 'home deve ter os canais oficiais');
+  assert.ok(!/MAIS PROJETOS EM BREVE/.test(html), 'home não deve ter cartão extra fora da referência');
 });
 
 test('vite.config registra a rota ferramentas', () => {
@@ -95,10 +97,12 @@ test('minha-conta.html exige autenticação', () => {
   assert.match(js, /apiGet/);
 });
 
-test('index.html navega para /entrar e /planos', () => {
+test('index.html é o linktree (páginas de conta seguem existindo)', () => {
   const html = read('index.html');
-  assert.match(html, /href="\/entrar"/);
-  assert.match(html, /href="\/planos"/);
+  assert.match(html, /bio-hero/, 'linktree deve ter o cabeçalho oficial');
+  for (const page of ['entrar.html', 'planos.html']) {
+    assert.ok(read(page).length > 500, `${page} deve continuar existindo`);
+  }
 });
 
 test('vite.config.js inclui todas as páginas', () => {
