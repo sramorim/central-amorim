@@ -30,6 +30,7 @@ export default defineConfig({
         whatsapp: resolve(__dirname, 'sentinela.html'),
         pix: resolve(__dirname, 'pix.html'),
         admin: resolve(__dirname, 'admin.html'),
+        portal: resolve(__dirname, 'portal/index.html'),
       },
     },
   },

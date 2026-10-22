@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Portal Amorim</title>
+<meta name="description" content="Portal Amorim: os projetos e ferramentas do Senhor Amorim.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Sora:wght@600;700&display=swap">
+<style>
+:root { --bg:#0b0c10; --card:#15161c; --line:#26272f; --fg:#f2f2f5; --muted:#a2a3ad; --accent:#ef1d2d; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font: 15px/1.5 Manrope, system-ui, sans-serif;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 640px; margin: 0 auto; padding-block: 28px 40px; }
+header { display:flex; align-items:center; gap:12px; }
+header img { width:44px; height:44px; object-fit:contain; }
+header .t { font: 700 16px Sora, sans-serif; letter-spacing:.08em; }
+header .s { font-size:12px; color:var(--muted); letter-spacing:.14em; text-transform:uppercase; }
+h1 { font: 700 26px/1.2 Sora, sans-serif; margin: 26px 0 8px; text-wrap: balance; }
+.lead { color: var(--muted); margin: 0 0 18px; }
+input[type=search] { width:100%; font:inherit; color:var(--fg); background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 14px; min-height:48px; }
+.grid { display:grid; gap:12px; margin-top:18px; }
+.item { display:grid; grid-template-columns: 52px 1fr; gap:14px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; color:var(--fg); text-decoration:none; min-width:0; }
+.item:hover, .item:focus-visible { border-color: var(--accent); outline: none; }
+.item .ico { width:52px; height:52px; border-radius:14px; background:#0b0c10; border:1px solid var(--line); display:grid; place-items:center; overflow:hidden; }
+.item .ico svg { width:40px; height:40px; }
+.item h2 { font: 700 15px Sora, sans-serif; margin:0; letter-spacing:.04em; }
+.item p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.item .go { color: var(--accent); font-size: 13px; font-weight: 700; margin-top: 6px; display:inline-block; }
+.soon { border-style: dashed; color: var(--muted); }
+.soon .ico { color: var(--muted); font-size: 22px; }
+.empty { color: var(--muted); text-align:center; padding: 20px 0; display:none; }
+footer { margin-top: 36px; color: var(--muted); font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="/logo-amorim.png" alt="Senhor Amorim">
+    <div>
+      <div class="t">PORTAL AMORIM</div>
+      <div class="s">Ecossistema Sr. Amorim</div>
+    </div>
+  </header>
+
+  <h1>Todos os projetos num só lugar</h1>
+  <p class="lead">Escolha um projeto para abrir. Cada um tem seu próprio endereço.</p>
+
+  <label class="sr-only" for="busca" style="position:absolute;left:-9999px">Buscar projeto</label>
+  <input id="busca" type="search" placeholder="Buscar projeto" autocomplete="off">
+
+  <div class="grid" id="lista">
+    <a class="item" href="https://argos.senhoramorim.com.br" data-nome="argos inteligência redes sociais">
+      <span class="ico" aria-hidden="true"><svg viewBox="0 0 64 64"><g fill="none" stroke="#fff" stroke-width="3.4"><circle cx="14" cy="32" r="6"/><circle cx="34" cy="14" r="6"/><circle cx="34" cy="50" r="6"/><path d="M19 28 29 19M19 36l10 9"/></g><circle cx="50" cy="32" r="7" fill="none" stroke="#ef1d2d" stroke-width="3.4"/></svg></span>
+      <span><h2>ARGOS</h2><p>Presença pública em redes sociais, com link direto para cada perfil.</p><span class="go">Abrir →</span></span>
+    </a>
+    <a class="item" href="https://elite.senhoramorim.com.br" data-nome="shadow elite segurança">
+      <span class="ico" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="5" y="5" width="54" height="54" rx="14" fill="none" stroke="#ef1d2d" stroke-width="4"/><text x="32" y="42" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="24" fill="#fff">&lt;/&gt;</text></svg></span>
+      <span><h2>SHADOW ELITE</h2><p>Cibersegurança e ferramentas técnicas.</p><span class="go">Abrir →</span></span>
+    </a>
+    <a class="item" href="https://osint.senhoramorim.com.br" data-nome="amorim osint fontes abertas">
+      <span class="ico" aria-hidden="true"><svg viewBox="0 0 64 64"><g fill="none" stroke="#e8e8e8" stroke-width="3.2"><circle cx="26" cy="26" r="18"/><circle cx="26" cy="26" r="11"/></g><circle cx="26" cy="26" r="4" fill="#ef1d2d"/></svg></span>
+      <span><h2>AMORIM OSINT</h2><p>Investigação em fontes abertas.</p><span class="go">Abrir →</span></span>
+    </a>
+    <a class="item" href="https://presence-observer-ai.lovable.app" target="_blank" rel="noopener" data-nome="presence insights instagram">
+      <span class="ico" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="6" y="6" width="38" height="38" rx="12" fill="none" stroke="#d62976" stroke-width="4"/><circle cx="25" cy="25" r="9" fill="none" stroke="#fa7e1e" stroke-width="4"/></svg></span>
+      <span><h2>PRESENÇA INSIGHTS</h2><p>Análise de presença no Instagram.</p><span class="go">Abrir →</span></span>
+    </a>
+    <div class="item soon" data-nome="em breve">
+      <span class="ico" aria-hidden="true">+</span>
+      <span><h2>EM BREVE</h2><p>Novos projetos entram aqui.</p></span>
+    </div>
+  </div>
+  <p class="empty" id="vazio">Nenhum projeto encontrado.</p>
+
+  <footer>© 2026 Daniel Amorim — Ecossistema Digital</footer>
+</div>
+<script>
+(function () {
+  var campo = document.getElementById('busca');
+  var itens = document.querySelectorAll('#lista [data-nome]');
+  var vazio = document.getElementById('vazio');
+  campo.addEventListener('input', function () {
+    var q = campo.value.trim().toLowerCase();
+    var achou = 0;
+    itens.forEach(function (el) {
+      var ok = !q || el.dataset.nome.indexOf(q) !== -1 || el.textContent.toLowerCase().indexOf(q) !== -1;
+      el.hidden = !ok;
+      if (ok && !el.classList.contains('soon')) achou++;
+    });
+    vazio.style.display = achou ? 'none' : 'block';
+  });
+})();
+</script>
+</body>
+</html>
