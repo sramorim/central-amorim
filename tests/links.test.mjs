@@ -71,12 +71,14 @@ test('ferramentas.html existe com busca, filtro e grid', () => {
   assert.match(html, /ferramentas\.js/, 'deve carregar o script do catálogo');
 });
 
-test('home é o linktree oficial: logo, 4 projetos e sociais', () => {
+test('home é a vitrine oficial: logo, a frase e UM botão para o Portal', () => {
   const html = read('index.html');
   assert.match(html, /logo-amorim\.png/, 'home deve exibir a logo oficial');
-  assert.match(html, /projects-grid/, 'home deve ter o grid de projetos');
-  assert.match(html, /social-grid/, 'home deve ter os canais oficiais');
-  assert.ok(!/MAIS PROJETOS EM BREVE/.test(html), 'home não deve ter cartão extra fora da referência');
+  assert.match(html, /ECOSSISTEMA SR\.AMORIM/, 'home deve ter a linha do ecossistema');
+  assert.match(html, /<em>construindo\.<\/em>/, 'a frase da referência, com "construindo." em destaque');
+  const portal = html.match(/href="https:\/\/portal\.senhoramorim\.com\.br"/g) ?? [];
+  assert.equal(portal.length, 1, 'home deve ter exatamente um botão para o Portal');
+  assert.match(html, /Daniel Amorim/, 'home deve ter a assinatura');
 });
 
 test('vite.config registra a rota ferramentas', () => {
@@ -97,9 +99,9 @@ test('minha-conta.html exige autenticação', () => {
   assert.match(js, /apiGet/);
 });
 
-test('index.html é o linktree (páginas de conta seguem existindo)', () => {
+test('index.html é a vitrine (páginas de conta seguem existindo)', () => {
   const html = read('index.html');
-  assert.match(html, /bio-hero/, 'linktree deve ter o cabeçalho oficial');
+  assert.match(html, /central-portal/, 'vitrine deve ter o botão do Portal');
   for (const page of ['entrar.html', 'planos.html']) {
     assert.ok(read(page).length > 500, `${page} deve continuar existindo`);
   }
