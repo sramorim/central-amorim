@@ -338,6 +338,9 @@ export function installShandonOsint(ctx) {
     if (!phone || phone.length < 8) {
       throw new Error('Número inválido. Use o código do país (ex.: 554797876098).');
     }
+    if (env.WHATSAPP_LOOKUP === 'off') {
+      return { phone, configured: false, disabled: true, errors: ['A consulta de WhatsApp está desativada por enquanto.'] };
+    }
     if (!env.APIFY_API_TOKEN && !env.RAPIDAPI_WHATSAPP_KEY) {
       return { phone, configured: false, errors: ['Nenhuma chave configurada (APIFY_API_TOKEN ou RAPIDAPI_WHATSAPP_KEY).'] };
     }
