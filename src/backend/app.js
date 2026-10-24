@@ -688,6 +688,8 @@ export function createApp({ db, env = {} }) {
     RAPIDAPI_WHATSAPP_HOST: env.RAPIDAPI_WHATSAPP_HOST || '',
     APIFY_API_TOKEN: env.APIFY_API_TOKEN || '',
     APIFY_DAILY_LIMIT: Number(env.APIFY_DAILY_LIMIT) || 40,
+    /* "off" desliga a consulta de WhatsApp (Apify/RapidAPI) sem apagar nada. */
+    WHATSAPP_LOOKUP: String(env.WHATSAPP_LOOKUP || 'on').toLowerCase(),
   };
   const router = new Map();
   /* Rotas com parâmetro no caminho (PATCH /api/admin/.../:id). O Map exato não

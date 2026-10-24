@@ -147,6 +147,27 @@ test('POST /api/whatsapp-lookup sem chave responde configured:false', async () =
   assert.ok(ok.data.data.errors.some((e) => e.includes('RAPIDAPI_WHATSAPP_KEY')));
 });
 
+test('POST /api/whatsapp-lookup com WHATSAPP_LOOKUP=off não chama provedor nenhum', async () => {
+  const off = createApp({ db, env: makeEnv({ WHATSAPP_LOOKUP: 'off', APIFY_API_TOKEN: 'apify_api_test' }) });
+  const chamadas = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url) => { chamadas.push(String(url)); throw new Error('não devia sair para a rede'); };
+  try {
+    const res = await off.fetch(new Request('https://central.test/api/whatsapp-lookup', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: await proSession() },
+      body: JSON.stringify({ phone: '554797876098' }),
+    }));
+    const data = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(data.data.disabled, true);
+    assert.equal(data.data.configured, false);
+    assert.equal(chamadas.length, 0);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
 test('POST /api/whatsapp-lookup valida número', async () => {
   const missing = await call('/api/whatsapp-lookup', { method: 'POST', body: {} });
   assert.equal(missing.status, 400);
