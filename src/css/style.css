@@ -123,11 +123,9 @@ body {
 .central-canais::before, .central-canais::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 
 .central-assinatura {
-  margin: 0; font-family: var(--script); font-size: 3rem; line-height: 1.05; letter-spacing: 0.01em;
-  color: var(--accent);
-  /* traço mais cheio, como a assinatura da referência */
-  -webkit-text-stroke: 0.6px var(--accent);
-  text-shadow: 0 0 14px rgba(255, 31, 45, 0.45);
+  /* Branca e de traço fino, igual à assinatura da referência. */
+  margin: 0; font-family: var(--script); font-size: 2.4rem; line-height: 1.05; letter-spacing: 0.01em;
+  color: #ffffff;
 }
 .central-copyright { margin: 0; font-size: 0.78rem; letter-spacing: 0.14em; color: var(--muted); }
 
