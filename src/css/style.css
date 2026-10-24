@@ -15,7 +15,7 @@
   --accent-deep: #c8101c;
   --line: rgba(255, 255, 255, 0.16);
   --display: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --script: 'Great Vibes', 'Brush Script MT', cursive;
+  --script: 'Ms Madi', 'Brush Script MT', cursive;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -122,7 +122,13 @@ body {
 }
 .central-canais::before, .central-canais::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 
-.central-assinatura { margin: 0; word-spacing: 0.12em; font-family: var(--script); font-size: 2.2rem; line-height: 1.1; color: var(--text); }
+.central-assinatura {
+  margin: 0; font-family: var(--script); font-size: 3rem; line-height: 1.05; letter-spacing: 0.01em;
+  color: var(--accent);
+  /* traço mais cheio, como a assinatura da referência */
+  -webkit-text-stroke: 0.6px var(--accent);
+  text-shadow: 0 0 14px rgba(255, 31, 45, 0.45);
+}
 .central-copyright { margin: 0; font-size: 0.78rem; letter-spacing: 0.14em; color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) {
