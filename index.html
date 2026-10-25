@@ -22,33 +22,29 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Great+Vibes&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/src/css/style.css" />
+  <link rel="preload" as="image" href="/central-vitrine.jpg" />
+  <link rel="stylesheet" href="/src/css/vitrine.css" />
 </head>
 <body>
-  <main class="central" id="inicio">
-    <header class="central-hero">
-      <h1 class="central-logo">
-        <img src="/logo-amorim.png" alt="Senhor Amorim — Central Amorim" class="central-logo-img" width="1080" height="1080" />
-      </h1>
-      <p class="central-tagline">ECOSSISTEMA SR.AMORIM</p>
-      <p class="central-titulo">Um só lugar para conhecer o que estamos <em>construindo.</em></p>
-
-      <a class="central-portal" href="https://portal.senhoramorim.com.br" aria-label="Entrar no Portal Amorim">
-        <svg class="central-portal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
-        <span class="central-portal-text">ENTRAR NO PORTAL AMORIM</span>
-        <svg class="central-portal-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
-      </a>
-      <p class="central-sub">Produtos, ferramentas e projetos do Sr.Amorim.</p>
-    </header>
-
-    <footer class="central-footer" role="contentinfo">
-      <p class="central-canais"><span>Canais oficiais em breve.</span></p>
-      <p class="central-assinatura">Daniel Amorim</p>
-      <p class="central-copyright">© 2026 Sr.Amorim</p>
-    </footer>
+  <!--
+    A vitrine é a arte do dono, tal e qual (public/central-vitrine.jpg).
+    Por cima dela só existe o botão real que leva ao Portal, no lugar exato
+    do botão desenhado. O texto da arte repete-se em HTML escondido, para
+    leitores de ecrã e motores de busca.
+  -->
+  <main class="vitrine" id="inicio">
+    <img class="vitrine-arte" src="/central-vitrine.jpg" width="576" height="1024"
+      alt="Senhor Amorim — Central Amorim. Ecossistema Sr.Amorim: um só lugar para conhecer o que estamos construindo." />
+    <a class="central-portal vitrine-botao" href="https://portal.senhoramorim.com.br" aria-label="Entrar no Portal Amorim"></a>
+    <div class="so-leitor">
+      <h1>Senhor Amorim — Central Amorim</h1>
+      <p>ECOSSISTEMA SR.AMORIM</p>
+      <p>Um só lugar para conhecer o que estamos <em>construindo.</em></p>
+      <p>Produtos, ferramentas e projetos do Sr.Amorim.</p>
+      <p>Canais oficiais em breve.</p>
+      <p>Daniel Amorim</p>
+      <p>© 2026 Sr.Amorim</p>
+    </div>
   </main>
   <script type="module" src="/src/js/main.js"></script>
 </body>

@@ -73,7 +73,7 @@ test('ferramentas.html existe com busca, filtro e grid', () => {
 
 test('home é a vitrine oficial: logo, a frase e UM botão para o Portal', () => {
   const html = read('index.html');
-  assert.match(html, /logo-amorim\.png/, 'home deve exibir a logo oficial');
+  assert.match(html, /central-vitrine\.jpg/, 'home deve exibir a arte oficial da vitrine');
   assert.match(html, /ECOSSISTEMA SR\.AMORIM/, 'home deve ter a linha do ecossistema');
   assert.match(html, /<em>construindo\.<\/em>/, 'a frase da referência, com "construindo." em destaque');
   const portal = html.match(/href="https:\/\/portal\.senhoramorim\.com\.br"/g) ?? [];
