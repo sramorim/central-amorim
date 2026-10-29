@@ -30,5 +30,5 @@ export const socialLinks = [
 export const siteConfig = {
   brand: 'SENHOR AMORIM',
   platform: 'CENTRAL AMORIM',
-  copyright: '© 2026 Senhor Amorim — Daniel A. Amorim',
+  copyright: '© 2026 Sr.Amorim. Todos os direitos reservados. Criado e desenvolvido por Daniel Amorim · Brasil',
 };
