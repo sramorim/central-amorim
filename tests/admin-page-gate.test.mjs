@@ -137,7 +137,7 @@ test('D) suspended admin perde o painel mesmo com sessão válida', async () => 
 /* --------- E) o portão não quebrou o resto do site --------- */
 
 test('E) páginas públicas seguem abertas', async () => {
-  for (const page of ['/', '/entrar', '/minha-conta', '/ferramentas', '/planos']) {
+  for (const page of ['/', '/entrar', '/minha-conta', '/ferramentas']) {
     const res = await hit(page, comumCookie);
     assert.notEqual(res.status, 302, `${page} foi manda para o login sem motivo`);
     assert.notEqual(res.status, 403, `${page} foi bloqueada como se fosse admin`);

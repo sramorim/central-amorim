@@ -22,7 +22,6 @@
         <nav class="nav-desktop" role="navigation" aria-label="Menu principal">
           <a href="/#inicio">Início</a>
           <a href="/#projetos">Projetos</a>
-          <a href="/planos">Planos</a>
           <a href="/#sobre">Sobre</a>
           <a href="/#contato">Contato</a>
         </nav>
@@ -35,7 +34,6 @@
     <nav class="nav-mobile" id="mobile-nav" role="navigation" aria-label="Menu mobile">
       <a href="/#inicio">Início</a>
       <a href="/#projetos">Projetos</a>
-      <a href="/planos">Planos</a>
       <a href="/#sobre">Sobre</a>
       <a href="/#contato">Contato</a>
       <span data-auth-mobile></span>
@@ -151,7 +149,6 @@
           <a href="/entrar">Entrar</a>
           <a href="/criar-conta">Criar conta</a>
           <a href="/minha-conta">Minha conta</a>
-          <a href="/planos">Planos</a>
         </div>
         <div class="footer-links">
           <span class="footer-col-title">Navegação</span>
@@ -218,10 +215,9 @@
       } else {
         planTag.innerHTML = u.isAdmin
           ? '<span class="account-tag account-tag--admin">Administrador</span>'
-          : '<a class="account-tag account-tag--link" href="/pix">Ativar PRO · R$ 9,99</a>';
+          : '<span class="account-tag">Gratuito</span>';
         planBox.innerHTML =
-          '<strong>Plano gratuito.</strong><span>As ferramentas já funcionam na sua conta.<br />O PRO destrava tudo que for lançado — pagamento único de R$ 9,99 via Pix, vitalício.</span>' +
-          (u.isAdmin ? adminLine : '<a class="btn btn-primary" href="/pix">Quero o PRO</a>');
+          '<strong>Plano gratuito.</strong><span>As ferramentas já funcionam na sua conta.</span>' + (u.isAdmin ? adminLine : '');
       }
 
       document.getElementById('logout-btn').addEventListener('click', async () => {

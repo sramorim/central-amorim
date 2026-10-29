@@ -440,20 +440,6 @@ test('admin pode listar usuários; não-admin é negado', async () => {
   assert.equal(denied.res.status, 403);
 });
 
-test('catálogo de planos expõe FREE/PRO/ADMIN', async () => {
-  const { data, res } = await call('main', '/api/plans');
-  assert.equal(res.status, 200);
-  const codes = data.plans.map((p) => p.code);
-  assert.deepEqual(codes, ['FREE', 'PRO', 'ADMIN']);
-  const pro = data.plans.find((p) => p.code === 'PRO');
-  assert.equal(pro.available, false, 'PRO sem checkout nesta etapa');
-  assert.equal(pro.billing.unique, 9.99, 'PRO pagamento único definido');
-  assert.equal(pro.billing.monthly, 9.9, 'PRO mensal opcional definido');
-  assert.ok(Array.isArray(pro.features) && pro.features.length > 0, 'PRO expõe lista de recursos');
-  const free = data.plans.find((p) => p.code === 'FREE');
-  assert.deepEqual(free.limits.freeCategories, ['Username', 'Search Engines', 'AI Tools', 'Encoding / Decoding', 'Archives']);
-});
-
 test('access/check para visitante devolve limite demo', async () => {
   const { data, res } = await call('main', '/api/access/check', {
     method: 'POST',
