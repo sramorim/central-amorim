@@ -98,7 +98,7 @@ function actionFor(project, state) {
     return `<a href="${project.url}" class="btn btn-${project.buttonStyle}" data-tool-link="${project.id}">${label}</a>`;
   }
   const isPro = state.reason === NEEDS_UPGRADE;
-  const href = isPro ? '/planos' : '/entrar?next=' + encodeURIComponent(project.url);
+  const href = '/entrar?next=' + encodeURIComponent(project.url);
   const cta = isPro ? 'Ver planos' : 'Entrar para liberar';
   return `<a href="${href}" class="btn btn-locked" data-tool-locked="${project.id}" data-reason="${state.reason || ''}">🔒 ${cta}</a>
           <span class="project-lock-note">${UPGRADE_NOTE[state.minPlan] || ''}</span>`;

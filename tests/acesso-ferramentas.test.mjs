@@ -105,7 +105,7 @@ test('conta FREE usa as ferramentas gratuitas e não as de plano', async () => {
   const ig = await call('/api/instagram', { method: 'POST', body: { username: 'sr__amorim' }, cookie });
   assert.equal(ig.res.status, 403, 'PRO exige plano pago');
   assert.equal(ig.data.reason, 'upgrade_required');
-  assert.equal(ig.data.upgradeUrl, '/planos');
+  assert.equal(ig.data.upgradeUrl, null, 'sem página de planos: não há para onde mandar');
 });
 
 /* ------------------------------------------------------------------ */

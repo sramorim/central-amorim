@@ -48,7 +48,7 @@ test('data.js não contém referência a GitHub', () => {
 });
 
 test('páginas novas existem e expõem o slot de autenticação', () => {
-  for (const page of ['entrar', 'criar-conta', 'recuperar-senha', 'planos', 'minha-conta']) {
+  for (const page of ['entrar', 'criar-conta', 'recuperar-senha', 'minha-conta']) {
     const file = `${page}.html`;
     const html = read(file);
     assert.ok(html.length > 500, `${file} deve ter conteúdo real`);
@@ -102,14 +102,14 @@ test('minha-conta.html exige autenticação', () => {
 test('index.html é a vitrine (páginas de conta seguem existindo)', () => {
   const html = read('index.html');
   assert.match(html, /central-portal/, 'vitrine deve ter o botão do Portal');
-  for (const page of ['entrar.html', 'planos.html']) {
+  for (const page of ['entrar.html']) {
     assert.ok(read(page).length > 500, `${page} deve continuar existindo`);
   }
 });
 
 test('vite.config.js inclui todas as páginas', () => {
   const cfg = read('vite.config.js');
-  for (const key of ['entrar', 'criar-conta', 'recuperar-senha', 'planos', 'minha-conta']) {
+  for (const key of ['entrar', 'criar-conta', 'recuperar-senha', 'minha-conta']) {
     assert.match(cfg, new RegExp(key), `vite deve ter input ${key}`);
   }
 });

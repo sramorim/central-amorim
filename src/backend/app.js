@@ -781,7 +781,7 @@ export function createApp({ db, env = {} }) {
         tool: toolId,
         reason: decision.reason,
         loginUrl: decision.reason === 'login_required' ? '/entrar' : null,
-        upgradeUrl: decision.reason === 'upgrade_required' ? '/planos' : null,
+        upgradeUrl: null,
       },
       decision.code,
       corsFor(request, cfg)
@@ -955,23 +955,6 @@ export function createApp({ db, env = {} }) {
   });
 
   /* -------- plans -------- */
-  router.set('GET /api/plans', async () => {
-    return json({
-      ok: true,
-      plans: Object.values(PLANS).map((p) => ({
-        code: p.code,
-        label: p.label,
-        descriptor: p.descriptor,
-        order: p.order,
-        billing: p.billing,
-        features: p.features || [],
-        limits: p.limits ? p.limits['amorim-osint'] || null : null,
-        available: p.code !== 'PRO' || Boolean(cfg.PIX_KEY),
-      })),
-    });
-  });
-
-  /* -------- access check (server-side enforcement) -------- */
   router.set('POST /api/access/check', async (request, ctx) => {
     await ensureReady();
     const auth = ctx.auth || { ...GUEST_AUTH };
@@ -1052,57 +1035,6 @@ export function createApp({ db, env = {} }) {
   });
 
   /* -------- pix checkout (PRO) -------- */
-  router.set('GET /api/pix/config', async () => {
-    const enabled = Boolean(cfg.PIX_KEY);
-    return json({
-      ok: true,
-      enabled,
-      pix: enabled
-        ? { copyPaste: pixPayloadFor(cfg), amountBRL: Number(cfg.PIX_AMOUNT_BRL) || 9.99, name: cfg.PIX_NAME || 'SR. AMORIM' }
-        : null,
-      whatsapp: cfg.WA_NUMBER ? { number: cfg.WA_NUMBER } : null,
-      pro: {
-        code: 'PRO',
-        label: PLANS.pro.label,
-        price: PLANS.pro.billing.unique,
-        note: PLANS.pro.billing.uniqueNote,
-        features: PLANS.pro.features,
-      },
-    });
-  });
-
-  router.set('POST /api/orders', async (request, ctx) => {
-    if (!cfg.PIX_KEY) return json({ ok: false, error: 'Pagamento indisponível no momento.' }, 503);
-
-    const rl = await rateLimit(`order:${ctx.ip}`, 10);
-    if (!rl.ok) return json({ error: 'Muitos pedidos. Aguarde um instante.' }, 429);
-
-    const body = await readBody(request);
-    if (!body || body.__tooLarge) return json({ error: 'Requisição inválida.' }, 400);
-    const name = String(body.name || '').trim();
-    const email = String(body.email || '').trim().toLowerCase();
-    const cpf = String(body.cpf || '').trim().replace(/\D/g, '');
-    if (name.length < 2 || name.length > 80) return json({ error: 'Informe um nome entre 2 e 80 caracteres.' }, 400);
-    if (!EMAIL_RE.test(email) || email.length > 254) return json({ error: 'E-mail inválido.' }, 400);
-    if (cpf && cpf.length !== 11) return json({ error: 'CPF inválido (apenas números).' }, 400);
-
-    await ensureSchema(db);
-    const id = crypto.randomUUID();
-    const code = makeOrderCode();
-    const now = Date.now();
-    const amount = Math.round((Number(cfg.PIX_AMOUNT_BRL) || 9.99) * 100);
-    await db.prepare('INSERT INTO orders (id, code, name, email, cpf, plan, amount, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(id, code, name, email, cpf || null, 'pro', amount, 'pending', now).run();
-
-    return json({
-      ok: true,
-      order: { code, status: 'pending', createdAt: now, amount },
-      pix: { copyPaste: pixPayloadFor(cfg), amountBRL: Number(cfg.PIX_AMOUNT_BRL) || 9.99 },
-      whatsapp: cfg.WA_NUMBER ? { number: cfg.WA_NUMBER } : null,
-      note: 'Após pagar, envie o comprovante no WhatsApp informando o código do pedido para ativar o PRO.',
-    }, 201);
-  });
-
-  /* -------- métricas de cliques da bio (invisível no visual) -------- */
   router.set('POST /api/metrics/click', async (request, ctx) => {
     const rl = await rateLimit(`click:${ctx.ip}`, 60);
     if (!rl.ok) return json({ ok: false }, 429);
