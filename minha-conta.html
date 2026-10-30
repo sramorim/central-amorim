@@ -172,6 +172,7 @@
   <script type="module" src="/src/js/main.js"></script>
   <script type="module">
     import { renderAuthSlot, apiGet, apiPost, requireAuth } from '/src/js/auth.js';
+    import QRCode from 'qrcode';
 
     renderAuthSlot();
 
@@ -211,13 +212,62 @@
       if (plan === 'PRO') {
         planTag.innerHTML = '<span class="account-tag account-tag--pro">Vitalício &#10003;</span>';
         planBox.innerHTML =
-          '<strong>Você já é PRO.</strong><span>Pagamento único confirmado · acesso vitalício a todas as ferramentas liberadas.</span>' + adminLine;
+          '<strong>Você já é PRO.</strong><span>Acesso PRO ativo a todas as ferramentas liberadas.</span>' + adminLine;
       } else {
         planTag.innerHTML = u.isAdmin
           ? '<span class="account-tag account-tag--admin">Administrador</span>'
           : '<span class="account-tag">Gratuito</span>';
         planBox.innerHTML =
           '<strong>Plano gratuito.</strong><span>As ferramentas já funcionam na sua conta.</span>' + (u.isAdmin ? adminLine : '');
+        if (!u.isAdmin) mountBuy(u);
+      }
+
+      function mountBuy(user) {
+        const box = document.getElementById('account-plan-box');
+        const WA = '554797876098';
+        const PLANS = {
+          mensal: { label: 'PRO mensal', price: 'R$ 39,90' },
+          vitalicio: { label: 'PRO vitalício', price: 'R$ 119,90' },
+        };
+        box.insertAdjacentHTML('beforeend',
+          '<div class="buy-box" style="margin-top:16px;display:grid;gap:10px">' +
+          '<span>Escolha seu plano e pague via Pix:</span>' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+          '<button type="button" class="btn-primary" data-plan="mensal">PRO mensal · R$ 39,90</button>' +
+          '<button type="button" class="btn-primary" data-plan="vitalicio">PRO vitalício · R$ 119,90</button>' +
+          '</div>' +
+          '<div id="pix-result" hidden style="display:grid;gap:10px;justify-items:start">' +
+          '<img id="pix-qr" alt="QR code Pix" width="240" height="240" style="background:#fff;padding:8px;border-radius:8px" />' +
+          '<label>Pix copia e cola<textarea id="pix-copy" readonly rows="3" style="width:100%"></textarea></label>' +
+          '<button type="button" class="btn-secondary" id="pix-copy-btn">Copiar código</button>' +
+          '<a id="pix-wa" class="btn-primary" target="_blank" rel="noopener noreferrer">Enviar comprovante no WhatsApp</a>' +
+          '<small id="pix-msg"></small>' +
+          '</div></div>');
+        const msg = document.getElementById('pix-msg');
+        box.querySelectorAll('[data-plan]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const key = btn.getAttribute('data-plan');
+            const plan = PLANS[key];
+            msg.textContent = 'Gerando pedido…';
+            const created = await apiPost('/api/orders', { plan: key });
+            if (!created.ok) { msg.textContent = (created.data && created.data.error) || 'Não foi possível gerar o pedido.'; return; }
+            const order = created.data.order;
+            const pix = await apiGet('/api/orders/pix?code=' + encodeURIComponent(order.code));
+            if (!pix.ok) { msg.textContent = (pix.data && pix.data.error) || 'Pix indisponível no momento.'; return; }
+            const payload = pix.data.payload;
+            document.getElementById('pix-copy').value = payload;
+            document.getElementById('pix-qr').src = await QRCode.toDataURL(payload, { width: 240, margin: 1 });
+            const text = `Olá! Enviei o Pix do ${plan.label} (${plan.price}). Pedido ${order.code}. E-mail da conta: ${user.email}. Segue o comprovante.`;
+            document.getElementById('pix-wa').href = `https://wa.me/${WA}?text=${encodeURIComponent(text)}`;
+            document.getElementById('pix-result').hidden = false;
+            msg.textContent = `Pedido ${order.code} criado. Pague e envie o comprovante; a ativação é feita após a confirmação.`;
+          });
+        });
+        document.getElementById('pix-copy-btn').addEventListener('click', async () => {
+          const el = document.getElementById('pix-copy');
+          try { await navigator.clipboard.writeText(el.value); msg.textContent = 'Código copiado.'; }
+          catch { el.select(); msg.textContent = 'Copie o código selecionado.'; }
+        });
       }
 
       document.getElementById('logout-btn').addEventListener('click', async () => {
