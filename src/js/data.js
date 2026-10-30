@@ -24,7 +24,7 @@ export const socialLinks = [
   { name:'Facebook', url:'https://www.facebook.com/Central.Amorim', icon:'facebook', label:'Facebook', color:'facebook' },
   { name:'X', url:'https://x.com/', icon:'x', label:'X', color:'x' },
   { name:'Telegram', url:'https://t.me/Sr_amorim', icon:'telegram', label:'Telegram', color:'telegram' },
-  { name:'WhatsApp', url:'https://wa.me/554797876098', icon:'whatsapp', label:'WhatsApp', color:'whatsapp' },
+  { name:'WhatsApp', url:'https://wa.me/5547997876098', icon:'whatsapp', label:'WhatsApp', color:'whatsapp' },
 ];
 
 export const siteConfig = {
