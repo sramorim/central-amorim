@@ -66,19 +66,19 @@ export const PLANS = {
     code: 'PRO',
     label: 'Plano PRO',
     descriptor:
-      'Acesso completo ao AMORIM OSINT: toda a árvore de ferramentas, exportação liberada e novos recursos em primeiro lugar. Pagamento único, acesso vitalício à versão atual.',
+      'Acesso completo ao AMORIM OSINT: toda a árvore de ferramentas, exportação liberada e novos recursos em primeiro lugar. Vitalício por R$ 119,90 ou mensal por R$ 39,90.',
     order: 2,
     billing: {
       currency: 'BRL',
-      unique: 9.99,
-      uniqueNote: 'pagamento único · acesso vitalício à versão atual',
-      monthly: 9.9,
+      unique: 119.9,
+      uniqueNote: 'vitalício · acesso à versão atual',
+      monthly: 39.9,
     },
     features: [
       'Árvore AMORIM OSINT completa: 33 categorias',
       '1.168 ferramentas de investigação',
       'Exportação de dados liberada',
-      'Pagamento único de R$ 9,99 — sem mensalidade',
+      'Vitalício por R$ 119,90 ou mensal por R$ 39,90',
       'Upgrades futuros (v2, Shandon Elite) com desconto',
     ],
     limits: {
@@ -512,7 +512,7 @@ function pixCrc16(payload) {
 
 function pixPayloadFor(cfg) {
   const merchantAccount = pixField('00', 'br.gov.bcb.pix') + pixField('01', cfg.PIX_KEY);
-  const amount = (Number(cfg.PIX_AMOUNT_BRL) || 9.99).toFixed(2);
+  const amount = (Number(cfg.PIX_AMOUNT_BRL) || 119.9).toFixed(2);
   const name = String(cfg.PIX_NAME || 'SR. AMORIM').slice(0, 25);
   const city = String(cfg.PIX_CITY || 'BRASIL').slice(0, 15);
   const payload =
@@ -676,7 +676,7 @@ export function createApp({ db, env = {} }) {
     PIX_KEY: env.PIX_KEY || '',
     PIX_NAME: env.PIX_NAME || 'SR. AMORIM',
     PIX_CITY: env.PIX_CITY || 'BRASIL',
-    PIX_AMOUNT_BRL: env.PIX_AMOUNT_BRL || '9.99',
+    PIX_AMOUNT_BRL: env.PIX_AMOUNT_BRL || '119.90',
     WA_NUMBER: env.WA_NUMBER || '',
     SHANDON_ORIGIN: env.SHANDON_ORIGIN || 'https://elite.senhoramorim.com.br',
     ALLOWED_ORIGINS: env.ALLOWED_ORIGINS || '',
