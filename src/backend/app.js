@@ -66,19 +66,19 @@ export const PLANS = {
     code: 'PRO',
     label: 'Plano PRO',
     descriptor:
-      'Acesso completo ao AMORIM OSINT: toda a árvore de ferramentas, exportação liberada e novos recursos em primeiro lugar. Pagamento único, acesso vitalício à versão atual.',
+      'Acesso completo ao AMORIM OSINT: toda a árvore de ferramentas, exportação liberada e novos recursos em primeiro lugar. Vitalício por R$ 119,90 ou mensal por R$ 39,90.',
     order: 2,
     billing: {
       currency: 'BRL',
-      unique: 9.99,
-      uniqueNote: 'pagamento único · acesso vitalício à versão atual',
-      monthly: 9.9,
+      unique: 119.9,
+      uniqueNote: 'vitalício · acesso à versão atual',
+      monthly: 39.9,
     },
     features: [
       'Árvore AMORIM OSINT completa: 33 categorias',
       '1.168 ferramentas de investigação',
       'Exportação de dados liberada',
-      'Pagamento único de R$ 9,99 — sem mensalidade',
+      'Vitalício por R$ 119,90 ou mensal por R$ 39,90',
       'Upgrades futuros (v2, Shandon Elite) com desconto',
     ],
     limits: {
@@ -98,12 +98,18 @@ export const PLANS = {
   },
 };
 
+export const PRO_PLANS = {
+  mensal: { amount: 3990, label: 'PRO mensal' },
+  vitalicio: { amount: 11990, label: 'PRO vitalício' },
+};
+
 export const GUEST_LIMITS = {
   'amorim-osint': { categories: 5, tools: 12, export: false, demo: true },
 };
 
 function resolvePlan(ent) {
   if (!ent || ent.status !== 'active') return null;
+  if (ent.expires_at && Date.now() > Number(ent.expires_at)) return null;
   return PLANS[ent.plan] || null;
 }
 
@@ -510,9 +516,9 @@ function pixCrc16(payload) {
   return crc.toString(16).toUpperCase().padStart(4, '0');
 }
 
-function pixPayloadFor(cfg) {
+function pixPayloadFor(cfg, amountBRL, txid) {
   const merchantAccount = pixField('00', 'br.gov.bcb.pix') + pixField('01', cfg.PIX_KEY);
-  const amount = (Number(cfg.PIX_AMOUNT_BRL) || 9.99).toFixed(2);
+  const amount = Number(amountBRL).toFixed(2);
   const name = String(cfg.PIX_NAME || 'SR. AMORIM').slice(0, 25);
   const city = String(cfg.PIX_CITY || 'BRASIL').slice(0, 15);
   const payload =
@@ -524,7 +530,7 @@ function pixPayloadFor(cfg) {
     pixField('58', 'BR') +
     pixField('59', name) +
     pixField('60', city) +
-    pixField('62', pixField('05', '***')) +
+    pixField('62', pixField('05', String(txid || '***').replace(/[^A-Za-z0-9]/g, '').slice(0, 25) || '***')) +
     '6304';
   return payload + pixCrc16(payload);
 }
@@ -676,7 +682,7 @@ export function createApp({ db, env = {} }) {
     PIX_KEY: env.PIX_KEY || '',
     PIX_NAME: env.PIX_NAME || 'SR. AMORIM',
     PIX_CITY: env.PIX_CITY || 'BRASIL',
-    PIX_AMOUNT_BRL: env.PIX_AMOUNT_BRL || '9.99',
+    PIX_AMOUNT_BRL: env.PIX_AMOUNT_BRL || '119.90',
     WA_NUMBER: env.WA_NUMBER || '',
     SHANDON_ORIGIN: env.SHANDON_ORIGIN || 'https://elite.senhoramorim.com.br',
     ALLOWED_ORIGINS: env.ALLOWED_ORIGINS || '',
@@ -1055,6 +1061,35 @@ export function createApp({ db, env = {} }) {
     return json({ ok: true, metrics: toRows(rows) });
   });
 
+  /* -------- compra PRO via Pix (controle manual) -------- */
+  router.set('POST /api/orders', async (request, ctx) => {
+    await ensureReady();
+    const denied = await requireAuth(ctx);
+    if (denied) return denied;
+    const body = await readBody(request);
+    const key = String((body && body.plan) || '');
+    const option = PRO_PLANS[key];
+    if (!option) return json({ ok: false, error: 'Plano inválido.' }, 400, corsFor(request, cfg));
+    const user = ctx.auth.user;
+    const code = makeOrderCode();
+    await db.prepare('INSERT INTO orders (id, code, name, email, plan, amount, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(crypto.randomUUID(), code, user.name || user.email, user.email, 'pro', option.amount, 'pending', Date.now()).run();
+    return json({ ok: true, order: { code, plan: key, amount: option.amount, label: option.label } }, 201, corsFor(request, cfg));
+  });
+
+  router.set('GET /api/orders/pix', async (request, ctx) => {
+    await ensureReady();
+    const denied = await requireAuth(ctx);
+    if (denied) return denied;
+    const code = String(new URL(request.url).searchParams.get('code') || '').trim().toUpperCase();
+    const order = await db.prepare('SELECT code, amount, status FROM orders WHERE code = ? AND lower(email) = lower(?)')
+      .bind(code, ctx.auth.user.email).first();
+    if (!order || order.status !== 'pending') return json({ ok: false, error: 'Pedido não encontrado.' }, 404, corsFor(request, cfg));
+    if (!cfg.PIX_KEY) return json({ ok: false, error: 'Pix indisponível no momento.' }, 503, corsFor(request, cfg));
+    const payload = pixPayloadFor(cfg, Number(order.amount) / 100, order.code);
+    return json({ ok: true, payload, amount: Number(order.amount) / 100 }, 200, corsFor(request, cfg));
+  });
+
   /* -------- admin: orders -------- */
   /* A role administrativa (users.role) é a fonte da verdade. Não existe mais
      "admin" como plano: plano é só free/pro. */
@@ -1089,7 +1124,8 @@ export function createApp({ db, env = {} }) {
 
     const buyer = await db.prepare('SELECT id FROM users WHERE lower(email) = lower(?)').bind(order.email).first();
     if (buyer) {
-      await db.prepare("UPDATE entitlements SET plan = 'pro', status = 'active', started_at = ?, expires_at = NULL, provider = 'pix' WHERE user_id = ?").bind(now, buyer.id).run();
+      const expiresAt = Number(order.amount) === PRO_PLANS.mensal.amount ? now + 30 * 24 * 60 * 60 * 1000 : null;
+      await db.prepare("UPDATE entitlements SET plan = 'pro', status = 'active', started_at = ?, expires_at = ?, provider = 'pix' WHERE user_id = ?").bind(now, expiresAt, buyer.id).run();
     }
 
     return json({ ok: true, order: { code: order.code, status: 'activated', name: order.name, email: order.email } });

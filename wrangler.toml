@@ -23,13 +23,13 @@ COOKIE_DOMAIN = ".senhoramorim.com.br"
 COOKIE_SECURE = "true"
 PIX_NAME = "SR. AMORIM"
 PIX_CITY = "BRASIL"
-PIX_AMOUNT_BRL = "9.99"
+PIX_AMOUNT_BRL = "119.90"
 # Chave Pix (EVP) da Central — pública, usada no QR/copia-e-cola do checkout.
 PIX_KEY = "ee2ee68d-3e68-4458-a32e-d34af93772ef"
 # WhatsApp Business que recebe comprovantes (preenchido quando o chip chegar).
 # WhatsApp Business que recebe comprovantes. # TEMPORÁRIO: número pessoal do dono;
 # trocar pelo chip secundário quando chegar.
-WA_NUMBER = "554797876098"
+WA_NUMBER = "5547997876098"
 # E-mail(s) admin: o mesmo da conta que o dono usa para entrar no painel /admin.
 # Ex.: ADMIN_EMAILS = "contato.centralamorim@gmail.com"
 ADMIN_EMAILS = "sr.centralamorim@gmail.com"
