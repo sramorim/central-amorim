@@ -83,7 +83,7 @@ test('visitante é barrado das ferramentas PRO com motivo de upgrade', async () 
   assert.equal(ig.res.status, 401, 'sem sessão é 401 (login), não 403');
   assert.equal(ig.data.reason, 'login_required');
 
-  const wa = await call('/api/whatsapp-lookup', { method: 'POST', body: { phone: '554797876098' } });
+  const wa = await call('/api/whatsapp-lookup', { method: 'POST', body: { phone: '5547991669122' } });
   assert.equal(wa.res.status, 401);
 });
 
@@ -120,7 +120,7 @@ test('conta PRO usa as ferramentas pagas', async () => {
   assert.equal(ig.res.status, 200, 'sem chave configurada responde 200 com configured:false');
   assert.equal(ig.data.success, true);
 
-  const wa = await call('/api/whatsapp-lookup', { method: 'POST', body: { phone: '554797876098' }, cookie });
+  const wa = await call('/api/whatsapp-lookup', { method: 'POST', body: { phone: '5547991669122' }, cookie });
   assert.equal(wa.res.status, 200);
 });
 

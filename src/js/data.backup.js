@@ -154,7 +154,7 @@ export const socialLinks = [
     name: 'WhatsApp',
     // Numero do WhatsApp Business que recebe os comprovantes (mesmo do WA_NUMBER
     // do Worker). Antes apontava para https://wa.me/ sem numero — link morto.
-    url: 'https://wa.me/554797876098',
+    url: 'https://wa.me/5547991669122',
     icon: 'whatsapp',
     label: 'Fale pelo WhatsApp',
     color: 'whatsapp',

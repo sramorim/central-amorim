@@ -336,7 +336,7 @@ export function installShandonOsint(ctx) {
     const errors = [];
 
     if (!phone || phone.length < 8) {
-      throw new Error('Número inválido. Use o código do país (ex.: 554797876098).');
+      throw new Error('Número inválido. Use o código do país (ex.: 5547991669122).');
     }
     if (env.WHATSAPP_LOOKUP === 'off') {
       return { phone, configured: false, disabled: true, errors: ['A consulta de WhatsApp está desativada por enquanto.'] };

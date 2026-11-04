@@ -97,11 +97,11 @@ test('POST /api/phone-osint valida corpo e responde no shape do Shandon', async 
   const missing = await call('/api/phone-osint', { method: 'POST', body: {} });
   assert.equal(missing.status, 400);
 
-  const ok = await call('/api/phone-osint', { method: 'POST', body: { phone: '554797876098' } });
+  const ok = await call('/api/phone-osint', { method: 'POST', body: { phone: '5547991669122' } });
   assert.equal(ok.status, 200);
   assert.equal(ok.data.success, true);
   const d = ok.data.data;
-  assert.equal(d.phone, '554797876098');
+  assert.equal(d.phone, '5547991669122');
   assert.equal(typeof d.valid, 'boolean');
   assert.equal(typeof d.country, 'string');
   assert.equal(typeof d.whatsapp, 'boolean');
@@ -140,7 +140,7 @@ test('POST /api/crypto-check valida address obrigatório', async () => {
 });
 
 test('POST /api/whatsapp-lookup sem chave responde configured:false', async () => {
-  const ok = await call('/api/whatsapp-lookup', { method: 'POST', body: { phone: '554797876098' } });
+  const ok = await call('/api/whatsapp-lookup', { method: 'POST', body: { phone: '5547991669122' } });
   assert.equal(ok.status, 200);
   assert.equal(ok.data.success, true);
   assert.equal(ok.data.data.configured, false);
@@ -156,7 +156,7 @@ test('POST /api/whatsapp-lookup com WHATSAPP_LOOKUP=off não chama provedor nenh
     const res = await off.fetch(new Request('https://central.test/api/whatsapp-lookup', {
       method: 'POST',
       headers: { 'content-type': 'application/json', cookie: await proSession() },
-      body: JSON.stringify({ phone: '554797876098' }),
+      body: JSON.stringify({ phone: '5547991669122' }),
     }));
     const data = await res.json();
     assert.equal(res.status, 200);
@@ -189,10 +189,10 @@ test('POST /api/whatsapp-lookup com APIFY_API_TOKEN usa o provedor Apify (foto, 
       return new Response(
         JSON.stringify([
           {
-            number: '554797876098',
+            number: '5547991669122',
             exists: true,
             isBusiness: false,
-            urlImage: 'https://whatsapp-db.example/554797876098.jpg',
+            urlImage: 'https://whatsapp-db.example/5547991669122.jpg',
             about: 'Disponível',
             telegram: { username: 'dono', first_name: 'Dono', last_name: 'Teste', premium: true },
             fbLeak: {
@@ -223,7 +223,7 @@ test('POST /api/whatsapp-lookup com APIFY_API_TOKEN usa o provedor Apify (foto, 
       new Request('https://central.test/api/whatsapp-lookup', {
         method: 'POST',
         headers: { 'content-type': 'application/json', cookie: await proSession() },
-        body: JSON.stringify({ phone: '554797876098' }),
+        body: JSON.stringify({ phone: '5547991669122' }),
       })
     );
     const body = await res.json();
@@ -234,7 +234,7 @@ test('POST /api/whatsapp-lookup com APIFY_API_TOKEN usa o provedor Apify (foto, 
     assert.equal(d.onWhatsApp, true);
     assert.equal(d.name, 'Dono Teste');
     assert.equal(d.photo.hasPhoto, true);
-    assert.equal(d.photo.image, 'https://whatsapp-db.example/554797876098.jpg');
+    assert.equal(d.photo.image, 'https://whatsapp-db.example/5547991669122.jpg');
     assert.equal(d.photo.facebookPhoto, 'https://wa-fb.example/123.jpg');
     assert.equal(d.telegram.username, 'dono');
     assert.equal(d.hasTelegram, true);
@@ -372,7 +372,7 @@ test('POST /api/instagram com APIFY_API_TOKEN entrega perfil completo (modo deta
 test('Origem do Shandon liberada (CORS + osint), origens estranhas bloqueadas', async () => {
   const elite = await call('/api/phone-osint', {
     method: 'POST',
-    body: { phone: '554797876098' },
+    body: { phone: '5547991669122' },
     origin: 'https://elite.senhoramorim.com.br',
   });
   assert.equal(elite.status, 200);
@@ -380,7 +380,7 @@ test('Origem do Shandon liberada (CORS + osint), origens estranhas bloqueadas', 
 
   const evil = await call('/api/phone-osint', {
     method: 'POST',
-    body: { phone: '554797876098' },
+    body: { phone: '5547991669122' },
     origin: 'https://evil.example',
   });
   assert.equal(evil.status, 403);

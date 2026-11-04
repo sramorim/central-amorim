@@ -143,7 +143,7 @@ test('POST /api/search/email descobre Gravatar e links de busca', async () => {
 });
 
 test('POST /api/search/phone delega para o Phone OSINT (shape de card)', async () => {
-  const ok = await call('/api/search/phone', { phone: '554797876098' });
+  const ok = await call('/api/search/phone', { phone: '5547991669122' });
   assert.equal(ok.status, 200);
   assert.equal(ok.data.data.mode, 'phone');
   const r = ok.data.data.results[0];
