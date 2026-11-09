@@ -5,6 +5,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Ano do copyright sempre atual.
+  document.querySelectorAll('[data-ano]').forEach((el) => { el.textContent = String(new Date().getFullYear()); });
   initClickMetrics();
   initSmoothScroll();
 });
