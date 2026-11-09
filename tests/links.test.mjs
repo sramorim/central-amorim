@@ -71,9 +71,12 @@ test('ferramentas.html existe com busca, filtro e grid', () => {
   assert.match(html, /ferramentas\.js/, 'deve carregar o script do catálogo');
 });
 
-test('home é a vitrine oficial: logo, a frase e UM botão para o Portal', () => {
+test('home é a vitrine oficial: logo, a frase, o Portal, o Ari e a assinatura', () => {
   const html = read('index.html');
-  assert.match(html, /central-vitrine\.jpg/, 'home deve exibir a arte oficial da vitrine');
+  assert.match(html, /logo-amorim\.png/, 'home deve exibir o logo oficial');
+  assert.match(html, /assinatura-daniel-amorim\.svg/, 'home deve exibir a assinatura do dono');
+  assert.match(html, /href="https:\/\/ari\.senhoramorim\.com\.br"/, 'home deve ter o botão do Ari');
+  assert.match(html, /© <span data-ano>\d{4}<\/span> Sr\. Amorim\. Todos os direitos reservados\./, 'copyright profissional');
   assert.match(html, /ECOSSISTEMA SR\.AMORIM/, 'home deve ter a linha do ecossistema');
   assert.match(html, /<em>construindo\.<\/em>/, 'a frase da referência, com "construindo." em destaque');
   const portal = html.match(/href="https:\/\/portal\.senhoramorim\.com\.br"/g) ?? [];

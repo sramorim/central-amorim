@@ -5,6 +5,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Ano do copyright sempre atual.
+  document.querySelectorAll('[data-ano]').forEach((el) => { el.textContent = String(new Date().getFullYear()); });
   initClickMetrics();
   initSmoothScroll();
 });
@@ -15,7 +17,7 @@ function initClickMetrics() {
     const link = ev.target.closest('a[href]');
     if (!link) return;
     const target = (link.getAttribute('href') || link.getAttribute('aria-label') || 'desconhecido').slice(0, 120);
-    const kind = link.classList.contains('central-portal') ? 'portal' : 'social';
+    const kind = link.classList.contains('central-portal') ? 'portal' : link.classList.contains('central-ari') ? 'ari' : 'social';
     const body = JSON.stringify({ target, kind });
     try {
       if (navigator.sendBeacon) {

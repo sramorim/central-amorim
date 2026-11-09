@@ -1,0 +1,46 @@
+/*
+ * Vitrine da Central: a arte do dono ocupa a página inteira, sem nada por
+ * cima além do botão do Portal (transparente, no lugar do botão desenhado).
+ * As posições do botão são percentagens da arte (576 × 1024 px):
+ * x 44–532, y 634–732.
+ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: #050505; }
+body { display: flex; justify-content: center; align-items: center; min-height: 100vh; min-height: 100dvh; }
+
+.vitrine { position: relative; width: 100%; max-width: 576px; line-height: 0; }
+.vitrine-arte { display: block; width: 100%; height: auto; }
+
+.vitrine-botao {
+  position: absolute; left: 7.4%; top: 61.8%; width: 85.2%; height: 9.8%;
+  border-radius: 14px / 18%; -webkit-tap-highlight-color: transparent;
+  transition: box-shadow 160ms ease, background-color 160ms ease;
+}
+.vitrine-botao:hover, .vitrine-botao:focus-visible { background: rgba(255, 40, 40, .07); box-shadow: 0 0 28px rgba(255, 30, 30, .35); }
+.vitrine-botao:focus-visible { outline: 2px solid #ff3b3b; outline-offset: 3px; }
+.vitrine-botao:active { background: rgba(255, 40, 40, .12); }
+
+/* Ari em destaque: segundo botão, logo abaixo do Portal (cobre a frase pequena da arte). */
+.central-ari{position:absolute;left:15%;top:72.85%;width:70%;height:5.5%;z-index:3;display:flex;align-items:center;gap:clamp(8px,2.6vw,14px);padding:0 clamp(10px,3.4vw,18px);line-height:1;text-decoration:none;color:#f4f4f4;background:linear-gradient(145deg,#171717,#080808);border:1px solid #5a5454;border-radius:12px;box-shadow:0 0 0 4px rgba(5,5,5,.97);transition:border-color .18s,box-shadow .18s,transform .18s;-webkit-tap-highlight-color:transparent}
+.central-ari img{width:clamp(24px,6vw,34px);height:auto;flex-shrink:0}
+.central-ari-texto{display:flex;flex-direction:column;gap:3px;min-width:0}
+.central-ari-texto strong{font:700 clamp(11px,3vw,15px)/1 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.06em;text-transform:uppercase}
+.central-ari-texto small{font:500 clamp(9px,2.3vw,12px)/1 system-ui,-apple-system,'Segoe UI',sans-serif;color:#b9b4b4;letter-spacing:.02em}
+.central-ari i{margin-left:auto;font-size:clamp(11px,2.8vw,15px);color:#c9c4c4}
+.central-ari:hover,.central-ari:focus-visible{border-color:#ff2638;box-shadow:0 0 0 4px rgba(5,5,5,.97),0 0 18px #ff263844;transform:translateY(-1px);outline:none}
+.central-ari:focus-visible{outline:2px solid #ff2638;outline-offset:3px}
+
+/* Canais oficiais: substituem visualmente a frase antiga que está na arte base. */
+.canais-oficiais{position:absolute;left:27%;top:79.3%;width:46%;height:4.9%;display:flex;align-items:center;justify-content:center;gap:clamp(12px,4vw,24px);line-height:1;background:rgba(5,5,5,.97);z-index:3}
+.canais-oficiais a{display:grid;place-items:center;width:clamp(32px,7vw,42px);height:clamp(32px,7vw,42px);border:1px solid #4b4545;border-radius:50%;background:linear-gradient(145deg,#171717,#080808);color:#f4f4f4;font-size:clamp(17px,4vw,22px);text-decoration:none;transition:color .18s,border-color .18s,transform .18s,box-shadow .18s}
+.canais-oficiais a:hover,.canais-oficiais a:focus-visible{color:#ff2638;border-color:#ff2638;transform:translateY(-2px);box-shadow:0 0 14px #ff263833;outline:none}
+.canais-oficiais a:focus-visible{outline:2px solid #ff2638;outline-offset:3px}
+
+.so-leitor {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vitrine-botao { transition: none; }
+}

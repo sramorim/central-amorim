@@ -2,9 +2,10 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Senhor Amorim — Central Amorim</title>
-  <meta name="description" content="A entrada oficial do ecossistema Senhor Amorim." />
+  <meta name="description" content="A entrada oficial do ecossistema Senhor Amorim: o Portal com todos os projetos e o Ari, assistente pessoal de IA." />
+  <meta name="author" content="Daniel de Amorim" />
   <meta property="og:title" content="Senhor Amorim — Central Amorim" />
   <meta property="og:description" content="A entrada oficial do ecossistema Senhor Amorim." />
   <meta property="og:type" content="website" />
@@ -13,46 +14,61 @@
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="Senhor Amorim — Central Amorim" />
+  <meta property="og:locale" content="pt_BR" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Senhor Amorim — Central Amorim" />
   <meta name="twitter:description" content="A entrada oficial do ecossistema Senhor Amorim." />
   <meta name="twitter:image" content="https://senhoramorim.com.br/og-image.jpg" />
-  <meta property="og:locale" content="pt_BR" />
-  <meta name="theme-color" content="#0b0c10" />
+  <meta name="theme-color" content="#070708" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <link rel="preload" as="image" href="/central-vitrine.jpg" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer" />
+  <link rel="preload" as="image" href="/logo-amorim.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" />
   <link rel="stylesheet" href="/src/css/vitrine.css" />
 </head>
 <body>
-  <!--
-    A vitrine é a arte do dono, tal e qual (public/central-vitrine.jpg).
-    Por cima dela só existe o botão real que leva ao Portal, no lugar exato
-    do botão desenhado. O texto da arte repete-se em HTML escondido, para
-    leitores de ecrã e motores de busca.
-  -->
   <main class="vitrine" id="inicio">
-    <img class="vitrine-arte" src="/central-vitrine.jpg" width="576" height="1024"
-      alt="Senhor Amorim — Central Amorim. Ecossistema Sr.Amorim: um só lugar para conhecer o que estamos construindo." />
-    <a class="central-portal vitrine-botao" href="https://portal.senhoramorim.com.br" aria-label="Entrar no Portal Amorim"></a>
-    <nav class="canais-oficiais" aria-label="Canais oficiais do Sr. Amorim">
-      <a href="https://instagram.com/sr__amorim" target="_blank" rel="noopener noreferrer" aria-label="Instagram oficial"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
-      <a href="https://wa.me/5547991669122" target="_blank" rel="noopener noreferrer" aria-label="Canal oficial do WhatsApp"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>
-      <a href="https://www.facebook.com/Central.Amorim" target="_blank" rel="noopener noreferrer" aria-label="Página oficial do Facebook"><i class="fa-brands fa-facebook-f" aria-hidden="true"></i></a>
-      <a href="https://t.me/Sr_amorim" target="_blank" rel="noopener noreferrer" aria-label="Canal oficial do Telegram"><i class="fa-brands fa-telegram" aria-hidden="true"></i></a>
+    <img class="vitrine-logo" src="/logo-amorim.png" width="1080" height="1080" alt="Senhor Amorim — Central Amorim" />
+
+    <p class="vitrine-eyebrow">ECOSSISTEMA SR.AMORIM</p>
+    <h1 class="vitrine-titulo">Um só lugar para conhecer o que estamos <em>construindo.</em></h1>
+    <p class="vitrine-sub">Produtos, ferramentas e projetos do Sr. Amorim.</p>
+
+    <nav class="vitrine-acoes" aria-label="Entradas do ecossistema">
+      <a class="central-portal botao botao-principal" href="https://portal.senhoramorim.com.br">
+        <svg class="botao-icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>
+        <span class="botao-texto"><strong>Entrar no Portal Amorim</strong><small>Todos os projetos e ferramentas</small></span>
+        <svg class="botao-seta" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </a>
+      <a class="central-ari botao botao-ari" href="https://ari.senhoramorim.com.br">
+        <img class="botao-ari-marca" src="/ari-symbol.svg" width="40" height="31" alt="" />
+        <span class="botao-texto"><strong>Conhecer o Ari <span class="selo">Novo</span></strong><small>Seu assistente pessoal de IA</small></span>
+        <svg class="botao-seta" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </a>
     </nav>
-    <div class="so-leitor">
-      <h1>Senhor Amorim — Central Amorim</h1>
-      <p>ECOSSISTEMA SR.AMORIM</p>
-      <p>Um só lugar para conhecer o que estamos <em>construindo.</em></p>
-      <p>Produtos, ferramentas e projetos do Sr.Amorim.</p>
-      <p>Canais oficiais: Instagram, WhatsApp, Facebook e Telegram.</p>
-      <p>Daniel Amorim</p>
-      <p>© 2026 Sr.Amorim</p>
-    </div>
+
+    <nav class="canais-oficiais" aria-label="Canais oficiais do Sr. Amorim">
+      <a href="https://instagram.com/sr__amorim" target="_blank" rel="noopener noreferrer" aria-label="Instagram oficial"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>
+      <a href="https://wa.me/5547991669122" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp oficial"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg></a>
+      <a href="https://www.facebook.com/Central.Amorim" target="_blank" rel="noopener noreferrer" aria-label="Página oficial do Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+      <a href="https://t.me/Sr_amorim" target="_blank" rel="noopener noreferrer" aria-label="Telegram oficial"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg></a>
+    </nav>
+
+    <img class="vitrine-assinatura" src="/assinatura-daniel-amorim.svg" width="196" height="49" alt="Daniel Amorim" />
   </main>
+
+  <footer class="rodape">
+    <p class="rodape-copy">© <span data-ano>2026</span> Sr. Amorim. Todos os direitos reservados.</p>
+    <p class="rodape-autor">Criado e desenvolvido por Daniel de Amorim · Brasil</p>
+    <nav class="rodape-links" aria-label="Informações">
+      <a href="/sobre.html">Sobre</a>
+      <a href="/contato.html">Contato</a>
+      <a href="/legal.html">Termos e Privacidade</a>
+    </nav>
+  </footer>
   <script type="module" src="/src/js/main.js"></script>
 </body>
 </html>
